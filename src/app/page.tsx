@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { ArrowDown, ArrowRight, Crown, Gamepad2, Menu, Sparkles, Users, X, Zap } from "lucide-react";
 
 const games = [
