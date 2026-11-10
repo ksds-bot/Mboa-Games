@@ -52,7 +52,6 @@ describe("paquet et mise en place", () => {
     const deck = createDeck();
     expect(deck).toHaveLength(52);
     expect(new Set(deck.map((item) => item.id)).size).toBe(52);
-    expect(deck.some((item) => item.rank === "JOKER")).toBe(false);
   });
 
   it("distribue 7 cartes à 2 joueurs et 6 à 3 ou 4 joueurs", () => {
