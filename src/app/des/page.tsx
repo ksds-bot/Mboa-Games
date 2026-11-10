@@ -237,25 +237,37 @@ export default function DeuxDesGame() {
                 <p className="text-sm font-bold">{message}</p>
                 {turnPlayer !== null && winner === null && <p className="mt-2 text-xs text-[#d7f89b]">Au tour de {names[turnPlayer]} · lance avec un geste ou touche le bouton.</p>}
               </div>
-              <div className="mt-5 grid gap-5 sm:grid-cols-2">
-                {activePlayers.map((index) => {
-                  const item = throws.find((entry) => entry.playerIndex === index);
-                  const isNext = turnPlayer === index && winner === null;
-                  const isRolling = rollingPlayer === index;
-                  return <article key={index} className={`rounded-2xl border p-4 ${isNext ? "border-[#c8f169]/60 bg-[#c8f169]/10" : "border-white/10 bg-black/15"}`}>
-                    <div className="flex items-center justify-between gap-2"><p className="font-black">{names[index]}</p><span className="text-xs text-white/45">Joueur {index + 1}</span></div>
-                    <div
-                      className="dice-table-surface my-5 flex min-h-56 touch-pan-y items-center justify-center gap-3 overflow-hidden rounded-[1.5rem] px-5 py-8 sm:min-h-64 sm:gap-6 sm:px-8 sm:py-10"
-                      onPointerDown={isNext && !isRolling ? handlePointerDown : undefined}
-                      onPointerUp={isNext && !isRolling ? (event) => handlePointerUp(event, index) : undefined}
-                    >
-                      {Array.from({ length: diceCount }, (_, i) => <Die key={i} face={item?.dice[i] ?? null} rolling={isRolling} delay={i * 65} />)}
-                    </div>
-                    {item ? <div className="text-center"><p className="text-xl font-black text-[#d7f89b]">{item.isMillion ? "💥 MILLION !" : `${item.total} points`}</p><p className="mt-1 text-xs text-white/45">{item.dice.join(" · ")}</p></div> : <p className="text-center text-xs text-white/40">{isRolling ? "Les dés rebondissent…" : "Prêt à lancer"}</p>}
-                    {isNext && !complete && <button disabled={rollingPlayer !== null} onClick={() => { if (suppressClick.current) { suppressClick.current = false; return; } rollForPlayer(index); }} className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-[#c8f169] px-4 py-3 font-black text-[#101b18] disabled:opacity-50"><Hand size={17} />{isRolling ? "Les dés roulent…" : "Lancer les dés"}</button>}
-                  </article>;
-                })}
-              </div>
+              <section className="mt-5 rounded-2xl border border-white/10 bg-black/15 p-4 sm:p-6">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-[.2em] text-[#c8f169]">Table commune</p>
+                    <h2 className="mt-1 text-xl font-black">{turnPlayer !== null && winner === null ? `Au lancer : ${names[turnPlayer]}` : winner !== null ? "Fin de la manche" : "Résultats de la manche"}</h2>
+                    <p className="mt-1 text-xs text-white/45">Une seule table pour tous · chacun lance à son tour</p>
+                  </div>
+                  {turnPlayer !== null && winner === null && <span className="rounded-full bg-[#c8f169]/15 px-3 py-2 text-xs font-black text-[#d7f89b]">Joueur {turnPlayer + 1}</span>}
+                </div>
+                <div
+                  className="dice-table-surface my-5 flex min-h-64 touch-pan-y items-center justify-center gap-4 overflow-hidden rounded-[1.5rem] px-5 py-10 sm:min-h-80 sm:gap-8 sm:px-10 sm:py-14"
+                  onPointerDown={turnPlayer !== null && rollingPlayer === null && winner === null && !complete ? handlePointerDown : undefined}
+                  onPointerUp={turnPlayer !== null && rollingPlayer === null && winner === null && !complete ? (event) => handlePointerUp(event, turnPlayer) : undefined}
+                >
+                  {Array.from({ length: diceCount }, (_, i) => <Die key={i} face={throws[throws.length - 1]?.dice[i] ?? null} rolling={rollingPlayer !== null} delay={i * 65} />)}
+                </div>
+                <div className="text-center">
+                  {rollingPlayer !== null ? <p className="text-lg font-black text-[#d7f89b]">Les dés roulent pour {names[rollingPlayer]}…</p> : throws.length > 0 ? <><p className="text-xl font-black text-[#d7f89b]">{throws[throws.length - 1].isMillion ? "💥 MILLION !" : `${throws[throws.length - 1].total} points`}</p><p className="mt-1 text-xs text-white/45">Lancer de {names[throws[throws.length - 1].playerIndex]} · {throws[throws.length - 1].dice.join(" · ")}</p></> : <p className="text-sm text-white/45">Les dés attendent le premier lancer.</p>}
+                </div>
+                {turnPlayer !== null && winner === null && !complete && <button disabled={rollingPlayer !== null} onClick={() => rollForPlayer(turnPlayer)} className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-[#c8f169] px-4 py-4 font-black text-[#101b18] disabled:opacity-50"><Hand size={18} />{rollingPlayer !== null ? "Les dés roulent…" : `Lancer pour ${names[turnPlayer]}`}</button>}
+                <div className="mt-6 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                  {activePlayers.map((index) => {
+                    const result = throws.find((entry) => entry.playerIndex === index);
+                    const isNext = turnPlayer === index && winner === null;
+                    return <div key={index} className={`flex items-center justify-between gap-3 rounded-xl border px-3 py-3 ${isNext ? "border-[#c8f169]/50 bg-[#c8f169]/10" : "border-white/10 bg-black/15"}`}>
+                      <div className="min-w-0"><p className="truncate text-sm font-bold">{names[index]}</p><p className="text-[11px] text-white/40">{result ? result.dice.join(" · ") : isNext ? "À lancer maintenant" : "En attente"}</p></div>
+                      <span className={`shrink-0 text-sm font-black ${result ? "text-[#d7f89b]" : "text-white/35"}`}>{result ? result.isMillion ? "MILLION" : result.total : "—"}</span>
+                    </div>;
+                  })}
+                </div>
+              </section>
               {complete && winner === null && rollingPlayer === null && <button onClick={resolveRound} className="mt-5 w-full rounded-xl bg-[#ff895c] px-5 py-4 font-black text-[#24150f]">Comparer les résultats <Trophy className="ml-2 inline" size={18} /></button>}
               {winner !== null && <div className="mt-6 rounded-2xl border border-[#c8f169]/40 bg-[#c8f169]/10 p-6 text-center"><Trophy className="mx-auto text-[#d7f89b]" size={42} /><h2 className="mt-3 text-2xl font-black">{names[winner]} gagne !</h2><p className="mt-2 text-sm text-white/60">Bravo, le village a son champion !</p><button onClick={() => { setStarted(false); setWinner(null); }} className="mt-5 rounded-xl bg-[#c8f169] px-6 py-3 font-black text-[#101b18]">Rejouer</button></div>}
             </>
