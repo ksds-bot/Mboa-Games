@@ -60,6 +60,8 @@ describe("paquet et mise en place", () => {
     const two = createGame({ players: [{ id: "a", name: "A" }, { id: "b", name: "B" }], randomIndex });
     expect(two.players.map((p) => p.hand.length)).toEqual([7, 7]);
     expect(two.currentPlayerIndex).toBe(1);
+    expect(["A", "2", "8", "J"]).not.toContain(two.discardPile[0].rank);
+    expect(two.drawPile).toHaveLength(37);
 
     const three = createGame({
       players: [{ id: "a", name: "A" }, { id: "b", name: "B" }, { id: "c", name: "C" }],
