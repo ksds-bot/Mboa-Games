@@ -40,8 +40,8 @@ function Die({ face, rolling, delay = 0 }: { face: number | null; rolling: boole
     left: 7 - remaining[1],
   };
   return (
-    <div className={`die-stage ${rolling ? "die-stage-rolling" : "die-stage-resting"}`} style={{ animationDelay: rolling ? `${delay}ms` : "0ms" }} aria-label={face ? `Dé : ${face}` : "Dé prêt"}>
-      <div className="die-cube">
+    <div className={`die-stage ${rolling ? "die-stage-rolling" : "die-stage-resting"}`} aria-label={face ? `Dé : ${face}` : "Dé prêt"}>
+      <div className="die-cube" style={{ animationDelay: rolling ? `${delay}ms` : "0ms" }}>
         <div className="cube-side cube-front"><DiceFace value={faces.front} /></div>
         <div className="cube-side cube-back"><DiceFace value={faces.back} /></div>
         <div className="cube-side cube-right"><DiceFace value={faces.right} /></div>
