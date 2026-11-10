@@ -20,14 +20,36 @@ function randomDieFace() {
   return (value[0] % 6) + 1;
 }
 
-function Die({ face, rolling, delay = 0 }: { face: number | null; rolling: boolean; delay?: number }) {
+function DiceFace({ value }: { value: number }) {
   return (
-    <div className={`dice-shell ${rolling ? "dice-tumbling" : "dice-resting"}`} style={{ animationDelay: rolling ? `${delay}ms` : "0ms" }}>
-      <div className="dice-face" aria-label={face ? `Dé : ${face}` : "Dé en attente"}>
-        {Array.from({ length: 9 }, (_, index) => (
-          <span key={index} className={face && PIPS[face].includes(index) ? "pip pip-visible" : "pip"} />
-        ))}
+    <div className="cube-face">
+      {Array.from({ length: 9 }, (_, index) => (
+        <span key={index} className={PIPS[value].includes(index) ? "cube-pip cube-pip-on" : "cube-pip"} />
+      ))}
+    </div>
+  );
+}
+
+function Die({ face, rolling, delay = 0 }: { face: number | null; rolling: boolean; delay?: number }) {
+  const top = face ?? 1;
+  const remaining = [1, 2, 3, 4, 5, 6].filter((value) => value !== top && value !== 7 - top);
+  const faces = {
+    front: remaining[0],
+    back: 7 - remaining[0],
+    right: remaining[1],
+    left: 7 - remaining[1],
+  };
+  return (
+    <div className={`die-stage ${rolling ? "die-stage-rolling" : "die-stage-resting"}`} style={{ animationDelay: rolling ? `${delay}ms` : "0ms" }} aria-label={face ? `Dé : ${face}` : "Dé prêt"}>
+      <div className="die-cube">
+        <div className="cube-side cube-front"><DiceFace value={faces.front} /></div>
+        <div className="cube-side cube-back"><DiceFace value={faces.back} /></div>
+        <div className="cube-side cube-right"><DiceFace value={faces.right} /></div>
+        <div className="cube-side cube-left"><DiceFace value={faces.left} /></div>
+        <div className="cube-side cube-top"><DiceFace value={top} /></div>
+        <div className="cube-side cube-bottom"><DiceFace value={7 - top} /></div>
       </div>
+      <div className="die-shadow" />
     </div>
   );
 }
@@ -139,21 +161,35 @@ export default function DeuxDesGame() {
   return (
     <main className="min-h-screen bg-[#101b18] px-4 py-5 text-white sm:px-6">
       <style jsx global>{`
-        @keyframes dice-toss {
-          0% { transform: translateY(0) rotateX(0deg) rotateY(0deg) rotateZ(0deg) scale(.9); }
-          18% { transform: translateY(-34px) rotateX(180deg) rotateY(130deg) rotateZ(90deg) scale(1.08); }
-          42% { transform: translateY(8px) rotateX(390deg) rotateY(280deg) rotateZ(210deg) scale(1.02); }
-          66% { transform: translateY(-12px) rotateX(540deg) rotateY(430deg) rotateZ(300deg) scale(1.04); }
-          84% { transform: translateY(3px) rotateX(680deg) rotateY(560deg) rotateZ(350deg) scale(1); }
-          100% { transform: translateY(0) rotateX(720deg) rotateY(720deg) rotateZ(360deg) scale(1); }
+        @keyframes real-dice-roll {
+          0% { transform: translate3d(0,0,0) rotateX(-24deg) rotateY(30deg) rotateZ(0deg); }
+          12% { transform: translate3d(-18px,-34px,20px) rotateX(145deg) rotateY(190deg) rotateZ(100deg); }
+          28% { transform: translate3d(24px,-12px,30px) rotateX(320deg) rotateY(390deg) rotateZ(230deg); }
+          45% { transform: translate3d(-14px,8px,10px) rotateX(510deg) rotateY(590deg) rotateZ(360deg); }
+          62% { transform: translate3d(10px,-12px,12px) rotateX(690deg) rotateY(760deg) rotateZ(500deg); }
+          78% { transform: translate3d(-4px,4px,0) rotateX(825deg) rotateY(910deg) rotateZ(640deg); }
+          90% { transform: translate3d(2px,-2px,0) rotateX(1050deg) rotateY(1130deg) rotateZ(720deg); }
+          100% { transform: translate3d(0,0,0) rotateX(1056deg) rotateY(1110deg) rotateZ(720deg); }
         }
-        .dice-shell { width: 64px; height: 64px; perspective: 500px; }
-        .dice-face { width: 64px; height: 64px; display: grid; grid-template-columns: repeat(3,1fr); grid-template-rows: repeat(3,1fr); gap: 3px; padding: 9px; border-radius: 15px; background: linear-gradient(145deg,#fff,#dce4df); box-shadow: inset 0 2px 4px #ffffff, 0 7px 12px #0008; }
-        .pip { border-radius: 50%; background: transparent; }
-        .pip-visible { background: radial-gradient(circle at 35% 30%,#53645c,#101b18 70%); box-shadow: inset 0 1px 2px #0008; }
-        .dice-tumbling { animation: dice-toss 1.05s cubic-bezier(.2,.75,.25,1) both; }
-        .dice-resting { transform: rotate(-3deg); }
-        @media (prefers-reduced-motion: reduce) { .dice-tumbling { animation-duration: .01ms; } }
+        .die-stage { position:relative; width:clamp(68px, 13vw, 94px); height:clamp(76px, 14vw, 104px); perspective:700px; display:grid; place-items:center; flex:0 1 auto; }
+        .die-cube { --die-size:clamp(58px, 11vw, 78px); position:relative; width:var(--die-size); height:var(--die-size); transform-style:preserve-3d; transform:rotateX(-24deg) rotateY(30deg); }
+        .cube-side { position:absolute; inset:0; width:100%; height:100%; padding:9%; border-radius:15%; background:linear-gradient(145deg,#fffef9 0%,#f4f0e5 42%,#d5d0c4 100%); border:1px solid #c9c2b3; box-shadow:inset 2px 2px 5px #fff, inset -3px -4px 7px #aaa496; backface-visibility:hidden; }
+        .cube-front { transform:translateZ(calc(var(--die-size) / 2)); }
+        .cube-back { transform:rotateY(180deg) translateZ(calc(var(--die-size) / 2)); }
+        .cube-right { transform:rotateY(90deg) translateZ(calc(var(--die-size) / 2)); }
+        .cube-left { transform:rotateY(-90deg) translateZ(calc(var(--die-size) / 2)); }
+        .cube-top { transform:rotateX(90deg) translateZ(calc(var(--die-size) / 2)); }
+        .cube-bottom { transform:rotateX(-90deg) translateZ(calc(var(--die-size) / 2)); }
+        .cube-face { width:100%; height:100%; display:grid; grid-template-columns:repeat(3,1fr); grid-template-rows:repeat(3,1fr); gap:5%; }
+        .cube-pip { border-radius:50%; background:transparent; }
+        .cube-pip-on { background:radial-gradient(circle at 32% 28%,#4a4a45 0%,#111 58%,#050505 100%); box-shadow:inset 1px 1px 2px #000, 0 1px 1px #fff9; }
+        .die-shadow { position:absolute; width:68%; height:13%; left:16%; bottom:5%; border-radius:50%; background:#0009; filter:blur(7px); transform:scaleX(1.12); }
+        .die-stage-rolling .die-cube { animation:real-dice-roll 1.15s cubic-bezier(.18,.72,.22,1) both; }
+        .die-stage-rolling .die-shadow { animation:die-shadow-roll 1.15s ease-out both; }
+        @keyframes die-shadow-roll { 0%{transform:scale(.6);opacity:.3;filter:blur(4px)} 30%{transform:scale(1.35);opacity:.9;filter:blur(10px)} 100%{transform:scale(1);opacity:.7;filter:blur(7px)} }
+        .die-stage-resting .die-cube { transform:rotateX(-24deg) rotateY(30deg); }
+        .dice-table-surface { background-color:#123c2c; background-image:radial-gradient(ellipse at 50% 40%,#286348 0%,#174832 48%,#0b2b20 100%),repeating-linear-gradient(35deg,#ffffff08 0 1px,transparent 1px 4px); box-shadow:inset 0 0 35px #041b13, inset 0 2px 3px #ffffff20; border:8px solid #67452c; outline:2px solid #a77a4b; }
+        @media (prefers-reduced-motion:reduce) { .die-stage-rolling .die-cube,.die-stage-rolling .die-shadow { animation-duration:.01ms; } }
       `}</style>
       <div className="mx-auto max-w-5xl">
         <header className="flex items-center justify-between gap-3">
@@ -163,7 +199,7 @@ export default function DeuxDesGame() {
 
         <section className="mt-8 overflow-hidden rounded-[2rem] border border-white/10 bg-gradient-to-br from-[#1d3329] to-[#14231d] p-5 shadow-2xl sm:p-8">
           <div className="flex flex-wrap items-start justify-between gap-4">
-            <div><p className="text-xs font-black uppercase tracking-[.25em] text-[#c8f169]">Le jeu de dés du 237</p><h1 className="mt-2 text-4xl font-black tracking-tight sm:text-5xl">Le 2 Dès <span className="text-3xl">🎲</span></h1><p className="mt-3 max-w-xl text-sm leading-6 text-white/60">Lance les dés toi-même : ils roulent à l’écran et révèlent leur face quand ils s’arrêtent.</p></div>
+            <div><p className="text-xs font-black uppercase tracking-[.25em] text-[#c8f169]">Le jeu de dés du 237</p><h1 className="mt-2 text-4xl font-black tracking-tight sm:text-5xl">Le 2 Dès <span className="text-3xl">🎲</span></h1><p className="mt-3 max-w-xl text-sm leading-6 text-white/60">Des dés en volume, un vrai tapis de jeu et un lancer qui rebondit avant de s’arrêter sur sa face.</p></div>
             <div className="rounded-2xl bg-[#c8f169]/10 p-4 text-[#d7f89b]"><Dices size={34} /></div>
           </div>
 
@@ -209,7 +245,7 @@ export default function DeuxDesGame() {
                   return <article key={index} className={`rounded-2xl border p-4 ${isNext ? "border-[#c8f169]/60 bg-[#c8f169]/10" : "border-white/10 bg-black/15"}`}>
                     <div className="flex items-center justify-between gap-2"><p className="font-black">{names[index]}</p><span className="text-xs text-white/45">Joueur {index + 1}</span></div>
                     <div
-                      className="my-5 flex min-h-20 touch-pan-y items-center justify-center gap-3 rounded-xl py-2"
+                      className="dice-table-surface my-5 flex min-h-36 touch-pan-y items-center justify-center gap-2 overflow-hidden rounded-2xl px-2 py-5 sm:gap-4"
                       onPointerDown={isNext && !isRolling ? handlePointerDown : undefined}
                       onPointerUp={isNext && !isRolling ? (event) => handlePointerUp(event, index) : undefined}
                     >
