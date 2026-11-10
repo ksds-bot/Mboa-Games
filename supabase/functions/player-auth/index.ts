@@ -112,7 +112,6 @@ Deno.serve(async (req: Request) => {
         password: internalPassword,
       });
       if (signInError || !signedIn.session) throw signInError ?? new Error("Connexion impossible après la création.");
-      await admin.rpc("mboa_reset_auth_attempts", { p_key: `register:${ip}` });
       return json({ session: signedIn.session }, 200, origin);
     }
 
