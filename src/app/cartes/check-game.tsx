@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import SiteHeader from "@/components/site-header";
 import {
   SUITS, type Suit, type Card, type GameState,
   createGame, canPlayCard, playCard, drawCard, announceCheck, finishTurn,
@@ -164,6 +165,8 @@ export default function CheckGame() {
   const winner = game?.players.find((p) => p.id === game.winnerId);
 
   return (
+    <>
+    <SiteHeader active="cards" />
     <main className="min-h-screen bg-[#0c1713] px-3 py-5 text-white sm:px-6">
       <div className="mx-auto max-w-5xl">
         <a href="/" className="text-sm font-bold text-white/60 hover:text-white">← Retour à Mboa Games</a>
@@ -217,5 +220,6 @@ export default function CheckGame() {
         <p className="mt-8 text-center text-xs text-white/35">Mboa Games · Test gratuit · Aucun argent réel · 🇨🇲</p>
       </div>
     </main>
+    </>
   );
 }
