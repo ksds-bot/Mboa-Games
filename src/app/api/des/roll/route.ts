@@ -1,4 +1,4 @@
-import { randomInt } from "node:crypto";
+import { randomInt, randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
@@ -12,7 +12,9 @@ export async function POST(request: Request) {
     }
     const dice = Array.from({ length: diceCount }, () => randomInt(1, 7));
     const total = dice.reduce((sum, face) => sum + face, 0);
-    return NextResponse.json({ dice, total, rollId: crypto.randomUUID() }, {
+    const rollId = randomUUID();
+    console.info("[le-2-des] server roll", { rollId, diceCount, dice, total, createdAt: new Date().toISOString() });
+    return NextResponse.json({ dice, total, rollId }, {
       headers: { "Cache-Control": "no-store" },
     });
   } catch {
