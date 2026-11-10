@@ -159,13 +159,14 @@ export function createGame(options: CreateGameOptions): GameState {
   }
 
   // Une carte spéciale révélée au départ retourne sous la pioche.
-  const remaining = deck.slice(cursor);
-  let firstDiscardIndex = remaining.findIndex(
-    (card) => !["A", "2", "8", "J"].includes(card.rank),
-  );
-  if (firstDiscardIndex < 0) throw new RuleError("Impossible de préparer la défausse.");
-  const firstDiscard = remaining[firstDiscardIndex];
-  const drawPile = remaining.filter((_, index) => index !== firstDiscardIndex);
+  const drawPile = deck.slice(cursor);
+  let firstDiscard = drawPile.shift();
+  while (firstDiscard && ["A", "2", "8", "J"].includes(firstDiscard.rank)) {
+    // La carte spéciale est replacée sous la pioche, puis on retourne la suivante.
+    drawPile.push(firstDiscard);
+    firstDiscard = drawPile.shift();
+  }
+  if (!firstDiscard) throw new RuleError("Impossible de préparer la défausse.");
 
   return {
     players: dealt,
