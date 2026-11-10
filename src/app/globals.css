@@ -302,3 +302,9 @@ a { color: inherit; text-decoration: none; }
 
 
 .auth-hint { margin:-3px 0 2px; color:#819084; font-size:10px; line-height:1.5; }
+
+
+/* Username + secret PIN account flow */
+.auth-mode-switch { display:block; width:100%; margin-top:18px; padding:10px 0; border:0; background:transparent; color:#d1f36a; font-size:11px; font-weight:850; cursor:pointer; }
+.auth-mode-switch:disabled { opacity:.55; cursor:not-allowed; }
+.auth-pin-input { letter-spacing: .45em; font-weight:900; }
