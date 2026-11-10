@@ -50,6 +50,7 @@ Deno.serve(async (req: Request) => {
   });
   if (req.method !== "POST") return json({ error: "Méthode non autorisée." }, 405, origin);
 
+  let stage = "request";
   try {
     const body = await req.json();
     const action = body?.action;
@@ -65,12 +66,14 @@ Deno.serve(async (req: Request) => {
       }
       const forwardedFor = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
       const ip = req.headers.get("cf-connecting-ip") ?? forwardedFor ?? "unknown";
+      stage = "register-rate-limit";
       const { data: canRegister, error: rateError } = await admin.rpc("mboa_take_auth_attempt", {
         p_key: `register:${ip}`,
       });
       if (rateError) throw rateError;
       if (!canRegister) return json({ error: "Trop de créations de comptes depuis cet appareil. Réessaie dans 30 minutes." }, 429, origin);
 
+      stage = "register-username-check";
       const { data: existing, error: lookupError } = await admin
         .from("profiles")
         .select("id")
@@ -81,6 +84,7 @@ Deno.serve(async (req: Request) => {
 
       const internalEmail = `${username}@players.mboa-games.invalid`;
       const internalPassword = `${pin}mB!`;
+      stage = "register-auth-user";
       const { data: created, error: createError } = await admin.auth.admin.createUser({
         email: internalEmail,
         password: internalPassword,
@@ -94,6 +98,7 @@ Deno.serve(async (req: Request) => {
         throw createError ?? new Error("Impossible de créer le compte.");
       }
 
+      stage = "register-profile";
       const { error: profileError } = await admin.from("profiles").insert({
         id: created.user.id,
         username,
@@ -107,6 +112,7 @@ Deno.serve(async (req: Request) => {
         throw profileError;
       }
 
+      stage = "register-session";
       const { data: signedIn, error: signInError } = await authClient.auth.signInWithPassword({
         email: internalEmail,
         password: internalPassword,
@@ -117,12 +123,14 @@ Deno.serve(async (req: Request) => {
 
     if (action === "login") {
       const attemptKey = `login:${username}`;
+      stage = "login-rate-limit";
       const { data: canLogin, error: rateError } = await admin.rpc("mboa_take_auth_attempt", {
         p_key: attemptKey,
       });
       if (rateError) throw rateError;
       if (!canLogin) return json({ error: "Trop d'essais. Réessaie dans 30 minutes." }, 429, origin);
 
+      stage = "login-password";
       const { data: signedIn, error: signInError } = await authClient.auth.signInWithPassword({
         email: `${username}@players.mboa-games.invalid`,
         password: `${pin}mB!`,
@@ -135,7 +143,9 @@ Deno.serve(async (req: Request) => {
     }
 
     return json({ error: "Action inconnue." }, 400, origin);
-  } catch {
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    console.error("[player-auth]", { stage, detail });
     return json({ error: "Une erreur est survenue. Réessaie dans un instant." }, 500, origin);
   }
 });
