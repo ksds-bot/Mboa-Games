@@ -123,6 +123,12 @@ describe("règles de pose", () => {
 
   it("le joueur sans 2 pioche le cumul et son tour passe", () => {
     const state = fixture([[card("clubs", "4")], [card("diamonds", "5")]], card("hearts", "2"), {
+      drawPile: [
+        card("clubs", "3"),
+        card("spades", "4"),
+        card("diamonds", "6"),
+        card("spades", "9"),
+      ],
       pendingDraw: 4,
     });
     const next = drawCard(state, "p1", () => 0);
