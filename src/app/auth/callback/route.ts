@@ -14,10 +14,9 @@ export async function GET(request: NextRequest) {
     if (!error) {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        const displayName = user.email?.split("@")[0]?.slice(0, 40) || "Joueur";
         await supabase.from("profiles").upsert(
-          { id: user.id, display_name: displayName },
-          { onConflict: "id" },
+          { id: user.id },
+          { onConflict: "id", ignoreDuplicates: true },
         );
       }
       return NextResponse.redirect(new URL(next, request.url));
