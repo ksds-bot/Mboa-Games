@@ -22,7 +22,7 @@ function chooseBotCard(state: GameState, level: "facile" | "moyen" | "difficile"
   const valid = bot.hand.filter((card) => canPlayCard(state, card));
   if (!valid.length) return undefined;
   if (level === "facile") return valid[Math.floor(Math.random() * valid.length)];
-  const suitCounts = SUITS.map((suit) => ({ suit, count: bot.hand.filter((c) => c.suit === suit).length }));
+  const suitCounts = SUITS.map((suit) => ({ suit, count: bot.hand.filter((c) => c.suit === suit).length }))
     .sort((a, b) => b.count - a.count);
   const preferredSuit = suitCounts[0]?.suit ?? "hearts";
   const score = (card: Card) => {
