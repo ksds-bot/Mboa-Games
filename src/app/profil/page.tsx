@@ -35,16 +35,16 @@ export default async function ProfilPage() {
           <div className="profile-avatar">{profile.username.slice(0, 1).toUpperCase()}</div>
           <p className="auth-kicker">BIENVENUE DANS LA FAMILLE</p>
           <h1>{profile.username}</h1>
-          <p className="profile-email">{user.email}</p>
+          <p className="profile-email">Ton espace joueur Mboa Games</p>
           <div className="profile-details">
             <div><span>Pseudo confirmé</span><strong>@{profile.username}</strong></div>
-            <div><span>Compte</span><strong>Joueur Mboa Games</strong></div>
+            <div><span>Compte</span><strong>Protégé par PIN</strong></div>
           </div>
           <div className="profile-actions">
             <Link className="auth-submit profile-play" href="/">Découvrir les jeux <span aria-hidden="true">→</span></Link>
             <ProfileActions />
           </div>
-          <p className="auth-footnote">Ton pseudo est unique et réservé à ton compte.</p>
+          <p className="auth-footnote">Ton pseudo est unique et réservé à ton compte. Garde ton code PIN secret.</p>
         </section>
       </main>
     </>
