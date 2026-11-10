@@ -138,22 +138,22 @@ describe("règles de pose", () => {
   });
 
   it("8 fait passer le joueur suivant; à deux joueurs, le poseur rejoue", () => {
-    const two = fixture([[card("hearts", "8"), card("clubs", "4")], [card("diamonds", "3")]]);
+    const two = fixture([[card("hearts", "8"), card("clubs", "4"), card("spades", "9")], [card("diamonds", "3")]]);
     const playedTwo = playCard(two, "p1", "hearts-8");
     expect(finishTurn(playedTwo, "p1").currentPlayerIndex).toBe(0);
 
-    const three = fixture([[card("hearts", "8"), card("clubs", "4")], [card("diamonds", "3")], [card("spades", "6")]]);
+    const three = fixture([[card("hearts", "8"), card("clubs", "4"), card("spades", "9")], [card("diamonds", "3")], [card("spades", "6")]]);
     const playedThree = playCard(three, "p1", "hearts-8");
     expect(finishTurn(playedThree, "p1").currentPlayerIndex).toBe(2);
   });
 
   it("Valet inverse le sens; à deux joueurs, il fait rejouer le poseur", () => {
-    const three = fixture([[card("hearts", "J"), card("clubs", "4")], [card("diamonds", "3")], [card("spades", "6")]]);
+    const three = fixture([[card("hearts", "J"), card("clubs", "4"), card("spades", "9")], [card("diamonds", "3")], [card("spades", "6")]]);
     const reversed = playCard(three, "p1", "hearts-J");
     expect(reversed.direction).toBe(-1);
     expect(finishTurn(reversed, "p1").currentPlayerIndex).toBe(2);
 
-    const two = fixture([[card("hearts", "J"), card("clubs", "4")], [card("diamonds", "3")]]);
+    const two = fixture([[card("hearts", "J"), card("clubs", "4"), card("spades", "9")], [card("diamonds", "3")]]);
     expect(finishTurn(playCard(two, "p1", "hearts-J"), "p1").currentPlayerIndex).toBe(0);
   });
 });
