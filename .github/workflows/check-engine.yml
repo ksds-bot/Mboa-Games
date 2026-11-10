@@ -6,6 +6,8 @@ on:
     paths:
       - "src/lib/check-engine.ts"
       - "src/lib/check-engine.test.ts"
+      - "src/lib/des-engine.ts"
+      - "src/lib/des-engine.test.ts"
       - "package.json"
       - ".github/workflows/check-engine.yml"
   pull_request:
