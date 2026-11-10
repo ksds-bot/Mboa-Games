@@ -52,7 +52,7 @@ export default function Home() {
             <a href="#communaute">Communauté</a>
           </nav>
 
-          <a className="header-cta" href="#jeux">Entrer dans le village <ArrowUpRight size={16} /></a>
+          <Link className="header-cta" href="/connexion">Créer mon compte <ArrowUpRight size={16} /></Link>
           <button className="mobile-menu-button" onClick={() => setMenuOpen(!menuOpen)} aria-label={menuOpen ? "Fermer le menu" : "Ouvrir le menu"} aria-expanded={menuOpen}>
             {menuOpen ? <X size={22} /> : <Menu size={22} />}
           </button>
@@ -70,10 +70,10 @@ export default function Home() {
         <div className="hero-copy">
           <div className="eyebrow"><span className="eyebrow-dot" /> LA PLACE DU JEU CAMEROUNAIS <span className="flag-mini">🇨🇲</span></div>
           <h1>On ne joue pas<br />chacun dans son <span className="hero-highlight">coin.</span></h1>
-          <p className="hero-lead">On se retrouve, on se taquine, on prend sa revanche. Bienvenue sur le terrain de jeu du 237.</p>
+          <p className="hero-lead">Crée un seul compte Mboa Games pour retrouver ton pseudo et profiter des fonctionnalités sur tous les jeux. Tu préfères découvrir sans t’inscrire ? Joue librement en invité.</p>
           <div className="hero-actions">
-            <a className="button-primary" href="#jeux">Trouver mon jeu <ArrowRight size={18} /></a>
-            <a className="button-quiet" href="#concept"><CirclePlay size={18} /> Découvrir Mboa Games</a>
+            <Link className="button-primary" href="/connexion">Créer mon compte <ArrowRight size={18} /></Link>
+            <a className="button-quiet" href="#jeux"><CirclePlay size={18} /> Jouer en invité</a>
           </div>
           <div className="hero-proof">
             <div className="avatar-stack"><span>👨🏿</span><span>👩🏾</span><span>🧑🏽</span><span>👨🏾</span></div>
@@ -108,7 +108,7 @@ export default function Home() {
 
       <section id="jeux" className="games-section section-wrap">
         <div className="section-heading">
-          <div><div className="section-kicker">À CHACUN SON TERRAIN</div><h2>Quel jeu on lance <span>?</span></h2><p>Les classiques qu'on aime. Et quelques surprises en préparation.</p></div>
+          <div><div className="section-kicker">À CHACUN SON TERRAIN</div><h2>Quel jeu on lance <span>?</span></h2><p>Un compte unique pour toute la plateforme, ou joue directement en invité sans inscription.</p></div>
           <div className="game-count"><strong>06</strong><span>JEUX AU<br />PROGRAMME</span></div>
         </div>
 
@@ -117,7 +117,7 @@ export default function Home() {
             <article key={game.name} className={`game-card game-${game.tone} ${game.featured ? "game-featured" : ""}`}>
               <div className="game-card-top"><span className="game-emoji">{game.icon}</span><span className={`game-status ${game.href ? "status-ready" : ""}`}>{game.href ? <><span /> {game.label}</> : game.label}</span></div>
               <div className="game-card-copy"><p>{game.subtitle}</p><h3>{game.name}</h3><span>{game.description}</span></div>
-              {game.href ? <Link href={game.href} className="game-link">Jouer maintenant <ArrowUpRight size={17} /></Link> : <div className="game-soon">On prépare ça <Sparkles size={14} /></div>}
+              {game.href ? <Link href={game.href} className="game-link">Jouer en invité <ArrowUpRight size={17} /></Link> : <div className="game-soon">On prépare ça <Sparkles size={14} /></div>}
               {game.featured && <span className="featured-stamp">LE CLASSIQUE</span>}
             </article>
           ))}
