@@ -119,15 +119,9 @@ create policy "Hosts update their rooms"
 
 -- Membership is private to room participants. A user can only add themselves.
 drop policy if exists "Room participants can view membership" on public.room_players;
-create policy "Room participants can view membership"
+create policy "Players can view their own membership"
   on public.room_players for select to authenticated
-  using (
-    user_id = (select auth.uid())
-    or exists (
-      select 1 from public.room_players mine
-      where mine.room_id = room_players.room_id and mine.user_id = (select auth.uid())
-    )
-  );
+  using (user_id = (select auth.uid()));
 
 drop policy if exists "Players join as themselves" on public.room_players;
 create policy "Players join as themselves"
