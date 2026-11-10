@@ -5,18 +5,65 @@ import ProfileActions from "./profile-actions";
 import UsernameSetup from "./username-setup";
 import { createClient } from "@/lib/supabase/server";
 
-export const metadata = { title: "Mon profil" };
+export const metadata = { title: "Mon tableau de bord" };
+
+const number = new Intl.NumberFormat("fr-FR");
+const francs = new Intl.NumberFormat("fr-FR", {
+  style: "currency",
+  currency: "XAF",
+  maximumFractionDigits: 0,
+});
+
+function dateLabel(value: string) {
+  return new Intl.DateTimeFormat("fr-FR", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "Africa/Douala",
+  }).format(new Date(value));
+}
+
+function gameLabel(value: string) {
+  const labels: Record<string, string> = {
+    check: "CHECK!",
+    cartes: "CHECK!",
+    des: "Le 2 Dès",
+    "le-2-des": "Le 2 Dès",
+    ludo: "Ludo",
+    damier: "Damier",
+    quiz: "Quiz 237",
+  };
+  return labels[value.toLowerCase()] ?? value;
+}
+
+function outcomeLabel(value: string) {
+  if (value === "won") return "Victoire";
+  if (value === "lost") return "Défaite";
+  if (value === "draw") return "Égalité";
+  return "Partie arrêtée";
+}
 
 export default async function ProfilPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/connexion");
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("display_name, username, created_at")
-    .eq("id", user.id)
-    .maybeSingle();
+  const [
+    { data: profile },
+    { data: wallet },
+    { data: recentGames },
+    { data: allResults, count: gameCount },
+    { count: winCount },
+    { count: lossCount },
+    { data: transactions },
+  ] = await Promise.all([
+    supabase.from("profiles").select("display_name, username, created_at").eq("id", user.id).maybeSingle(),
+    supabase.from("player_wallets").select("points_balance, tokens_balance, cash_balance_xaf").eq("user_id", user.id).maybeSingle(),
+    supabase.from("player_game_history").select("id, game_type, outcome, score, points_delta, tokens_delta, created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(8),
+    supabase.from("player_game_history").select("outcome, points_delta, tokens_delta", { count: "exact" }).eq("user_id", user.id),
+    supabase.from("player_game_history").select("id", { count: "exact", head: true }).eq("user_id", user.id).eq("outcome", "won"),
+    supabase.from("player_game_history").select("id", { count: "exact", head: true }).eq("user_id", user.id).eq("outcome", "lost"),
+    supabase.from("player_wallet_transactions").select("id, asset, direction, amount, status, description, created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(5),
+  ]);
 
   if (!profile?.username) {
     return (
@@ -27,25 +74,135 @@ export default async function ProfilPage() {
     );
   }
 
+  const results = allResults ?? [];
+  const wins = winCount ?? 0;
+  const losses = lossCount ?? 0;
+  const totalGames = gameCount ?? results.length;
+  const lostPoints = results.reduce((sum, item) => sum + (item.outcome === "lost" && item.points_delta < 0 ? Math.abs(item.points_delta) : 0), 0);
+  const lostTokens = results.reduce((sum, item) => sum + (item.outcome === "lost" && item.tokens_delta < 0 ? Math.abs(item.tokens_delta) : 0), 0);
+  const winRate = totalGames > 0 ? Math.round((wins / totalGames) * 100) : 0;
+  const points = wallet?.points_balance ?? 0;
+  const tokens = wallet?.tokens_balance ?? 0;
+  const cash = wallet?.cash_balance_xaf ?? 0;
+
   return (
     <>
       <SiteHeader active="profile" />
-      <main className="auth-page">
-        <section className="profile-card">
-          <div className="profile-avatar">{profile.username.slice(0, 1).toUpperCase()}</div>
-          <p className="auth-kicker">BIENVENUE DANS LA FAMILLE</p>
-          <h1>{profile.username}</h1>
-          <p className="profile-email">Ton espace joueur Mboa Games</p>
-          <div className="profile-details">
-            <div><span>Pseudo confirmé</span><strong>@{profile.username}</strong></div>
-            <div><span>Compte</span><strong>Protégé par PIN</strong></div>
+      <main className="dashboard-page">
+        <div className="dashboard-shell">
+          <section className="dashboard-welcome">
+            <div>
+              <p className="dashboard-kicker">TON ESPACE PERSONNEL · MBOA GAMES</p>
+              <h1>Salut, <span>{profile.username}</span> 👋</h1>
+              <p>Retrouve ton profil, tes parties, tes points et tes jetons au même endroit.</p>
+            </div>
+            <div className="dashboard-avatar">{profile.username.slice(0, 1).toUpperCase()}</div>
+          </section>
+
+          <nav className="dashboard-tabs" aria-label="Sections du tableau de bord">
+            <a href="#apercu" className="is-current">Vue d'ensemble</a>
+            <a href="#parties">Mes parties</a>
+            <a href="#portefeuille">Portefeuille</a>
+            <a href="#profil-joueur">Mon profil</a>
+          </nav>
+
+          <section id="apercu" className="dashboard-section">
+            <div className="dashboard-section-heading">
+              <div><p className="dashboard-kicker">EN UN COUP D'ŒIL</p><h2>Mon aperçu</h2></div>
+              <span className="dashboard-live">Compte actif</span>
+            </div>
+            <div className="dashboard-balance-grid">
+              <article className="dashboard-balance-card balance-points">
+                <span className="dashboard-card-icon">⭐</span>
+                <p>Mes points</p>
+                <strong>{number.format(points)}</strong>
+                <small>Points de jeu disponibles</small>
+              </article>
+              <article className="dashboard-balance-card balance-tokens">
+                <span className="dashboard-card-icon">🪙</span>
+                <p>Mes jetons</p>
+                <strong>{number.format(tokens)}</strong>
+                <small>Jetons disponibles</small>
+              </article>
+              <article className="dashboard-balance-card balance-cash">
+                <span className="dashboard-card-icon">💳</span>
+                <p>Mon solde FCFA</p>
+                <strong>{francs.format(cash)}</strong>
+                <small>Portefeuille financier</small>
+              </article>
+            </div>
+          </section>
+
+          <section className="dashboard-stats-grid" aria-label="Statistiques de jeu">
+            <article className="dashboard-stat-card"><span>🎮</span><strong>{number.format(totalGames)}</strong><small>Parties enregistrées</small></article>
+            <article className="dashboard-stat-card"><span>🏆</span><strong>{number.format(wins)}</strong><small>Victoires</small></article>
+            <article className="dashboard-stat-card"><span>↘️</span><strong>{number.format(losses)}</strong><small>Défaites</small></article>
+            <article className="dashboard-stat-card"><span>📈</span><strong>{winRate}%</strong><small>Taux de victoire</small></article>
+          </section>
+
+          <div className="dashboard-main-grid">
+            <section id="parties" className="dashboard-panel">
+              <div className="dashboard-panel-heading"><div><p className="dashboard-kicker">TON PARCOURS</p><h2>Mes dernières parties</h2></div><span>{number.format(totalGames)} au total</span></div>
+              {recentGames && recentGames.length > 0 ? (
+                <div className="dashboard-history-list">
+                  {recentGames.map((game) => (
+                    <article className="dashboard-history-row" key={game.id}>
+                      <div className="dashboard-game-icon">{game.game_type.toLowerCase().includes("des") ? "🎲" : "🃏"}</div>
+                      <div className="dashboard-history-copy"><strong>{gameLabel(game.game_type)}</strong><small>{dateLabel(game.created_at)}</small></div>
+                      <div className="dashboard-history-result"><strong className={`outcome-${game.outcome}`}>{outcomeLabel(game.outcome)}</strong><small>{game.points_delta > 0 ? "+" : ""}{number.format(game.points_delta)} pts</small></div>
+                    </article>
+                  ))}
+                </div>
+              ) : (
+                <div className="dashboard-empty"><span>🎯</span><strong>Ton aventure commence ici</strong><p>Tes parties apparaîtront ici dès que les jeux enregistreront leurs résultats sur ton compte.</p><Link href="/des">Jouer au 2 Dès <span>→</span></Link></div>
+              )}
+            </section>
+
+            <section className="dashboard-panel dashboard-loss-panel">
+              <div className="dashboard-panel-heading"><div><p className="dashboard-kicker">BILAN DES PARTIES</p><h2>Mes pertes</h2></div><span>Historique</span></div>
+              <div className="dashboard-loss-line"><span>Points perdus</span><strong>{number.format(lostPoints)} pts</strong></div>
+              <div className="dashboard-loss-line"><span>Jetons perdus</span><strong>{number.format(lostTokens)}</strong></div>
+              <div className="dashboard-loss-line"><span>Parties perdues</span><strong>{number.format(losses)}</strong></div>
+              <p className="dashboard-muted-note">Seules les pertes réellement enregistrées dans l'historique sont comptées. Aucun montant n'est estimé.</p>
+            </section>
           </div>
-          <div className="profile-actions">
-            <Link className="auth-submit profile-play" href="/">Découvrir les jeux <span aria-hidden="true">→</span></Link>
-            <ProfileActions />
-          </div>
-          <p className="auth-footnote">Ton pseudo est unique et réservé à ton compte. Garde ton code PIN secret.</p>
-        </section>
+
+          <section id="portefeuille" className="dashboard-panel dashboard-wallet-panel">
+            <div className="dashboard-panel-heading"><div><p className="dashboard-kicker">POINTS, JETONS ET ARGENT</p><h2>Mon portefeuille</h2></div><span className="dashboard-coming">Achats bientôt disponibles</span></div>
+            <div className="dashboard-wallet-grid">
+              <div><span>⭐</span><strong>{number.format(points)}</strong><small>Points</small></div>
+              <div><span>🪙</span><strong>{number.format(tokens)}</strong><small>Jetons</small></div>
+              <div><span>💵</span><strong>{francs.format(cash)}</strong><small>Solde FCFA</small></div>
+            </div>
+            <p className="dashboard-wallet-note">Les soldes sont séparés. Les achats de jetons, dépôts et retraits en argent réel ne sont pas encore activés.</p>
+            <div className="dashboard-transactions">
+              <h3>Derniers mouvements</h3>
+              {transactions && transactions.length > 0 ? transactions.map((transaction) => (
+                <div className="dashboard-transaction-row" key={transaction.id}>
+                  <span>{transaction.description || (transaction.direction === "credit" ? "Crédit" : "Débit")}</span>
+                  <strong className={transaction.direction === "credit" ? "outcome-won" : "outcome-lost"}>{transaction.direction === "credit" ? "+" : "−"}{number.format(transaction.amount)} {transaction.asset === "cash_xaf" ? "FCFA" : transaction.asset === "tokens" ? "jetons" : "pts"}</strong>
+                </div>
+              )) : <p className="dashboard-muted-note">Aucun mouvement enregistré pour le moment.</p>}
+            </div>
+          </section>
+
+          <section id="profil-joueur" className="dashboard-panel dashboard-profile-panel">
+            <div className="dashboard-panel-heading"><div><p className="dashboard-kicker">IDENTITÉ DU JOUEUR</p><h2>Mon profil</h2></div><span>Protégé par PIN</span></div>
+            <div className="dashboard-profile-details">
+              <div><span>Pseudo</span><strong>@{profile.username}</strong></div>
+              <div><span>Nom affiché</span><strong>{profile.display_name || profile.username}</strong></div>
+              <div><span>Membre depuis</span><strong>{dateLabel(profile.created_at)}</strong></div>
+              <div><span>Identifiant joueur</span><strong>{user.id.slice(0, 8).toUpperCase()}</strong></div>
+            </div>
+            <p className="dashboard-muted-note">Garde ton code PIN secret. Il te permet de retrouver ce même compte sur un autre téléphone.</p>
+          </section>
+
+          <section className="dashboard-bottom-cta">
+            <div><strong>Prêt pour une nouvelle partie ?</strong><p>Ton compte te suit dans tous les jeux Mboa Games.</p></div>
+            <Link href="/">Choisir un jeu <span>→</span></Link>
+          </section>
+          <div className="dashboard-footer-actions"><Link href="/">Retour à l'accueil</Link><ProfileActions /></div>
+        </div>
       </main>
     </>
   );
