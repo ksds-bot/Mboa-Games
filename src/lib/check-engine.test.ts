@@ -67,6 +67,13 @@ describe("paquet et mise en place", () => {
       randomIndex,
     });
     expect(three.players.map((p) => p.hand.length)).toEqual([6, 6, 6]);
+
+    const four = createGame({
+      players: [1, 2, 3, 4].map((n) => ({ id: String(n), name: String(n) })),
+      randomIndex,
+    });
+    expect(four.players.map((p) => p.hand.length)).toEqual([6, 6, 6, 6]);
+    expect(four.drawPile).toHaveLength(27);
   });
 
   it("refuse moins de 2 joueurs, plus de 4 joueurs et les identifiants dupliqués", () => {
