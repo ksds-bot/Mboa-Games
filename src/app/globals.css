@@ -243,3 +243,24 @@ a { color: inherit; text-decoration: none; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+
+/* Shared Mboa Games navigation for every game screen */
+.game-site-header { position:relative; z-index:20; border-bottom:1px solid rgba(255,255,255,.08); background:rgba(13,22,17,.92); backdrop-filter:blur(18px); }
+.game-site-header-inner { width:min(1120px,calc(100% - 32px)); min-height:72px; margin:auto; display:flex; align-items:center; justify-content:space-between; gap:18px; }
+.game-site-brand { display:inline-flex; align-items:center; gap:10px; flex-shrink:0; }
+.game-site-mark { width:38px; height:38px; display:grid; place-items:center; border-radius:12px; background:#d1f36a; color:#142018; font-size:18px; font-weight:1000; letter-spacing:-2px; transform:rotate(-5deg); }
+.game-site-mark span { color:#e25e3e; }
+.game-site-word { display:flex; flex-direction:column; color:#f5f4e9; font-size:17px; line-height:1; font-weight:950; letter-spacing:-.8px; }
+.game-site-word > span { display:inline; color:#d1f36a; }
+.game-site-word small { margin-top:5px; color:#8d9a8f; font-size:6px; letter-spacing:1.4px; font-weight:900; }
+.game-site-nav { display:flex; align-items:center; justify-content:center; gap:7px; }
+.game-site-nav a { padding:10px 14px; border-radius:99px; color:#aab6ab; font-size:12px; font-weight:800; transition:background .2s,color .2s; }
+.game-site-nav a:hover,.game-site-nav a.is-active { background:rgba(209,243,106,.11); color:#d1f36a; }
+.game-site-tag { display:inline-flex; align-items:center; gap:7px; color:#d1f36a; font-size:10px; font-weight:900; letter-spacing:1px; }
+@media(max-width:560px) {
+ .game-site-header-inner { min-height:66px; flex-wrap:wrap; padding:10px 0; }
+ .game-site-nav { order:3; width:100%; justify-content:space-between; }
+ .game-site-nav a { flex:1; text-align:center; padding:9px 5px; font-size:11px; }
+ .game-site-tag { font-size:9px; }
+ .game-site-tag span { display:none; }
+}
