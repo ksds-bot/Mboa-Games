@@ -264,3 +264,38 @@ a { color: inherit; text-decoration: none; }
  .game-site-tag { font-size:9px; }
  .game-site-tag span { display:none; }
 }
+
+
+/* Player account and passwordless sign-in */
+.auth-page { min-height:calc(100vh - 72px); display:grid; place-items:center; padding:54px 20px 80px; background:radial-gradient(ellipse at 50% 10%,rgba(209,243,106,.09),transparent 48%),#101713; }
+.auth-card,.profile-card { width:min(100%,480px); padding:38px; border:1px solid rgba(255,255,255,.1); border-radius:24px; background:linear-gradient(145deg,rgba(255,255,255,.065),rgba(255,255,255,.02)); box-shadow:0 25px 75px rgba(0,0,0,.28); }
+.auth-card-icon { width:52px; height:52px; display:grid; place-items:center; border:1px solid rgba(209,243,106,.2); border-radius:16px; background:rgba(209,243,106,.08); font-size:25px; }
+.auth-kicker { margin:23px 0 0; color:#d1f36a; font-size:9px; font-weight:950; letter-spacing:2px; }
+.auth-card h1,.profile-card h1 { margin:11px 0 0; color:#f5f4e9; font-size:clamp(32px,7vw,43px); line-height:1.05; font-weight:950; letter-spacing:-2px; }
+.auth-description { margin:14px 0 0; color:#a6b1a7; font-size:13px; line-height:1.75; }
+.auth-form { display:grid; gap:11px; margin-top:28px; }
+.auth-form label { color:#dce4d8; font-size:11px; font-weight:800; }
+.auth-form input { width:100%; min-height:52px; padding:0 15px; border:1px solid rgba(255,255,255,.15); border-radius:12px; outline:none; background:rgba(0,0,0,.2); color:#fff; font-size:15px; }
+.auth-form input:focus { border-color:#d1f36a; box-shadow:0 0 0 3px rgba(209,243,106,.08); }
+.auth-form input::placeholder { color:#728075; }
+.auth-submit { min-height:51px; display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:7px; padding:0 17px; border:0; border-radius:12px; background:#d1f36a; color:#142018; font-size:12px; font-weight:950; cursor:pointer; transition:transform .2s,background .2s; }
+.auth-submit:hover:not(:disabled) { transform:translateY(-2px); background:#e0ff8c; }
+.auth-submit:disabled { cursor:not-allowed; opacity:.55; }
+.auth-submit span { font-size:19px; }
+.auth-back { justify-self:center; margin-top:5px; border:0; background:none; color:#b9c6ba; font-size:11px; font-weight:800; cursor:pointer; }
+.auth-notice,.auth-error { margin:17px 0 0; padding:12px 13px; border-radius:10px; font-size:11px; line-height:1.6; }
+.auth-notice { border:1px solid rgba(209,243,106,.18); background:rgba(209,243,106,.07); color:#d1f36a; }
+.auth-error { border:1px solid rgba(255,149,101,.22); background:rgba(255,149,101,.07); color:#ffad89; }
+.auth-footnote { margin:24px 0 0; color:#819084; font-size:10px; line-height:1.7; }
+.profile-card { text-align:center; }
+.profile-avatar { width:76px; height:76px; display:grid; place-items:center; margin:0 auto; border:1px solid rgba(209,243,106,.28); border-radius:24px; background:rgba(209,243,106,.12); color:#d1f36a; font-size:34px; font-weight:950; }
+.profile-email { margin:10px 0 0; color:#a6b1a7; font-size:12px; }
+.profile-details { display:grid; gap:0; margin-top:27px; border-top:1px solid rgba(255,255,255,.1); text-align:left; }
+.profile-details div { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:15px 0; border-bottom:1px solid rgba(255,255,255,.1); }
+.profile-details span { color:#91a095; font-size:11px; }
+.profile-details strong { color:#e9eee5; font-size:11px; }
+.profile-actions { display:grid; gap:10px; margin-top:22px; }
+.profile-play { width:100%; text-decoration:none; }
+.profile-signout { min-height:45px; border:1px solid rgba(255,255,255,.13); border-radius:12px; background:transparent; color:#c5cec5; font-size:11px; font-weight:800; cursor:pointer; }
+.profile-signout:hover { border-color:rgba(255,149,101,.4); color:#ffad89; }
+@media(max-width:560px) { .auth-page { min-height:calc(100vh - 125px); padding:34px 16px 55px; } .auth-card,.profile-card { padding:27px 22px; border-radius:19px; } }
