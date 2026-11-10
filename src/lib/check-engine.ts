@@ -1,4 +1,3 @@
-import { randomInt } from "node:crypto";
 
 export const SUITS = ["hearts", "diamonds", "clubs", "spades"] as const;
 export type Suit = (typeof SUITS)[number];
@@ -50,7 +49,19 @@ export class RuleError extends Error {
   }
 }
 
-const secureRandomIndex = (exclusiveMax: number): number => randomInt(exclusiveMax);
+const secureRandomIndex = (exclusiveMax: number): number => {
+  if (!Number.isInteger(exclusiveMax) || exclusiveMax <= 0) {
+    throw new RangeError("La borne aléatoire doit être un entier positif.");
+  }
+  // Web Crypto fonctionne dans le navigateur et dans Node.js récent.
+  const range = 0x1_0000_0000;
+  const limit = range - (range % exclusiveMax);
+  const value = new Uint32Array(1);
+  do {
+    globalThis.crypto.getRandomValues(value);
+  } while (value[0] >= limit);
+  return value[0] % exclusiveMax;
+};
 
 export function createDeck(): Card[] {
   return SUITS.flatMap((suit) =>
