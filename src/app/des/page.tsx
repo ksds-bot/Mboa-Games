@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import SiteHeader from "@/components/site-header";
 import { useMemo, useRef, useState } from "react";
 import { ArrowLeft, Dices, RotateCcw, Trophy, Users, Hand } from "lucide-react";
 import { evaluateThrows, type DiceThrow, validateDiceConfig } from "@/lib/des-engine";
@@ -159,6 +160,8 @@ export default function DeuxDesGame() {
   }
 
   return (
+    <>
+    <SiteHeader active="dice" />
     <main className="min-h-screen bg-[#101b18] px-4 py-5 text-white sm:px-6">
       <style jsx global>{`
         @keyframes real-dice-roll {
@@ -278,5 +281,6 @@ export default function DeuxDesGame() {
         <p className="mt-7 text-center text-xs text-white/35">Mboa Games · Le 2 Dès · Lancer interactif sur ton appareil · 🇨🇲</p>
       </div>
     </main>
+    </>
   );
 }
