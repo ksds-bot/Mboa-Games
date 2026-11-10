@@ -299,3 +299,6 @@ a { color: inherit; text-decoration: none; }
 .profile-signout { min-height:45px; border:1px solid rgba(255,255,255,.13); border-radius:12px; background:transparent; color:#c5cec5; font-size:11px; font-weight:800; cursor:pointer; }
 .profile-signout:hover { border-color:rgba(255,149,101,.4); color:#ffad89; }
 @media(max-width:560px) { .auth-page { min-height:calc(100vh - 125px); padding:34px 16px 55px; } .auth-card,.profile-card { padding:27px 22px; border-radius:19px; } }
+
+
+.auth-hint { margin:-3px 0 2px; color:#819084; font-size:10px; line-height:1.5; }
