@@ -171,8 +171,8 @@ export default function DeuxDesGame() {
           90% { transform: translate3d(2px,-2px,0) rotateX(1050deg) rotateY(1130deg) rotateZ(720deg); }
           100% { transform: translate3d(0,0,0) rotateX(1056deg) rotateY(1110deg) rotateZ(720deg); }
         }
-        .die-stage { position:relative; width:clamp(68px, 13vw, 94px); height:clamp(76px, 14vw, 104px); perspective:700px; display:grid; place-items:center; flex:0 1 auto; }
-        .die-cube { --die-size:clamp(58px, 11vw, 78px); position:relative; width:var(--die-size); height:var(--die-size); transform-style:preserve-3d; transform:rotateX(-24deg) rotateY(30deg); }
+        .die-stage { position:relative; width:clamp(54px, 8vw, 72px); height:clamp(64px, 9vw, 82px); perspective:850px; display:grid; place-items:center; flex:0 1 auto; }
+        .die-cube { --die-size:clamp(44px, 6.2vw, 60px); position:relative; width:var(--die-size); height:var(--die-size); transform-style:preserve-3d; transform:rotateX(-24deg) rotateY(30deg); }
         .cube-side { position:absolute; inset:0; width:100%; height:100%; padding:9%; border-radius:15%; background:linear-gradient(145deg,#fffef9 0%,#f4f0e5 42%,#d5d0c4 100%); border:1px solid #c9c2b3; box-shadow:inset 2px 2px 5px #fff, inset -3px -4px 7px #aaa496; backface-visibility:hidden; }
         .cube-front { transform:translateZ(calc(var(--die-size) / 2)); }
         .cube-back { transform:rotateY(180deg) translateZ(calc(var(--die-size) / 2)); }
@@ -188,10 +188,10 @@ export default function DeuxDesGame() {
         .die-stage-rolling .die-shadow { animation:die-shadow-roll 1.15s ease-out both; }
         @keyframes die-shadow-roll { 0%{transform:scale(.6);opacity:.3;filter:blur(4px)} 30%{transform:scale(1.35);opacity:.9;filter:blur(10px)} 100%{transform:scale(1);opacity:.7;filter:blur(7px)} }
         .die-stage-resting .die-cube { transform:rotateX(-24deg) rotateY(30deg); }
-        .dice-table-surface { background-color:#123c2c; background-image:radial-gradient(ellipse at 50% 40%,#286348 0%,#174832 48%,#0b2b20 100%),repeating-linear-gradient(35deg,#ffffff08 0 1px,transparent 1px 4px); box-shadow:inset 0 0 35px #041b13, inset 0 2px 3px #ffffff20; border:8px solid #67452c; outline:2px solid #a77a4b; }
+        .dice-table-surface { position:relative; isolation:isolate; background-color:#123c2c; background-image:radial-gradient(ellipse at 50% 38%,#347454 0%,#20583e 38%,#123b2b 72%,#09271c 100%),repeating-linear-gradient(35deg,#ffffff08 0 1px,transparent 1px 4px); box-shadow:inset 0 0 55px #041b13, inset 0 3px 5px #ffffff24, 0 12px 24px #0008; border:10px solid #67452c; outline:2px solid #a77a4b; }
         @media (prefers-reduced-motion:reduce) { .die-stage-rolling .die-cube,.die-stage-rolling .die-shadow { animation-duration:.01ms; } }
       `}</style>
-      <div className="mx-auto max-w-5xl">
+      <div className="mx-auto max-w-6xl">
         <header className="flex items-center justify-between gap-3">
           <Link href="/" className="inline-flex items-center gap-2 rounded-full border border-white/10 px-4 py-2 text-sm font-bold text-white/75 hover:bg-white/5"><ArrowLeft size={16} /> Accueil</Link>
           <span className="rounded-full border border-[#c8f169]/25 bg-[#c8f169]/10 px-3 py-1.5 text-xs font-black text-[#d7f89b]">MBOA GAMES 🇨🇲</span>
@@ -237,7 +237,7 @@ export default function DeuxDesGame() {
                 <p className="text-sm font-bold">{message}</p>
                 {turnPlayer !== null && winner === null && <p className="mt-2 text-xs text-[#d7f89b]">Au tour de {names[turnPlayer]} · lance avec un geste ou touche le bouton.</p>}
               </div>
-              <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="mt-5 grid gap-5 sm:grid-cols-2">
                 {activePlayers.map((index) => {
                   const item = throws.find((entry) => entry.playerIndex === index);
                   const isNext = turnPlayer === index && winner === null;
@@ -245,7 +245,7 @@ export default function DeuxDesGame() {
                   return <article key={index} className={`rounded-2xl border p-4 ${isNext ? "border-[#c8f169]/60 bg-[#c8f169]/10" : "border-white/10 bg-black/15"}`}>
                     <div className="flex items-center justify-between gap-2"><p className="font-black">{names[index]}</p><span className="text-xs text-white/45">Joueur {index + 1}</span></div>
                     <div
-                      className="dice-table-surface my-5 flex min-h-36 touch-pan-y items-center justify-center gap-2 overflow-hidden rounded-2xl px-2 py-5 sm:gap-4"
+                      className="dice-table-surface my-5 flex min-h-56 touch-pan-y items-center justify-center gap-3 overflow-hidden rounded-[1.5rem] px-5 py-8 sm:min-h-64 sm:gap-6 sm:px-8 sm:py-10"
                       onPointerDown={isNext && !isRolling ? handlePointerDown : undefined}
                       onPointerUp={isNext && !isRolling ? (event) => handlePointerUp(event, index) : undefined}
                     >
