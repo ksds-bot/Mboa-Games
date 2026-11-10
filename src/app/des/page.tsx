@@ -170,7 +170,7 @@ export default function DeuxDesGame() {
           )}
         </section>
 
-        {started && <section className="mt-5 rounded-2xl border border-white/10 bg-[#192722] p-5"><div className="flex items-center gap-2"><Users size={18} className="text-[#c8f169]" /><h2 className="font-black">Historique des lancers</h2></div><div className="mt-3 space-y-2">{history.length === 0 ? <p className="text-sm text-white/45">Les lancers apparaîtront ici.</p> : history.map((item, index) => <div key={item.rollId} className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-black/15 px-3 py-2 text-sm"><span className="text-white/60">Manche {item.round} · {item.player}</span><span className="font-bold">{item.dice.join(" · ")} <span className="text-[#d7f89b]">= {item.isMillion ? "MILLION" : item.total}</span></span></div>)}</div></section>}
+        {started && <section className="mt-5 rounded-2xl border border-white/10 bg-[#192722] p-5"><div className="flex items-center gap-2"><Users size={18} className="text-[#c8f169]" /><h2 className="font-black">Historique des lancers</h2></div><div className="mt-3 space-y-2">{history.length === 0 ? <p className="text-sm text-white/45">Les lancers apparaîtront ici.</p> : history.map((item, index) => <div key={item.rollId} className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-black/15 px-3 py-2 text-sm"><span className="text-white/60">Manche {item.round} · {item.player}</span><span className="font-bold">{item.dice.join(" · ")} <span className="text-[#d7f89b]">= {item.million ? "MILLION" : item.total}</span></span></div>)}</div></section>}
         <p className="mt-7 text-center text-xs text-white/35">Mboa Games · Le 2 Dès · Lancers générés côté serveur · 🇨🇲</p>
       </div>
     </main>
