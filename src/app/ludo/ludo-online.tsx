@@ -170,7 +170,7 @@ export default function LudoOnline() {
     const tick=()=>{
       const now=Date.now();
       setClockNow(now);
-      if(now>=new Date(snapshot.game.turnDeadlineAt!).getTime() && !expireInFlight.current){
+      if(now>=new Date(deadline).getTime() && !expireInFlight.current){
         expireInFlight.current=true;
         supabase.rpc("ludo_expire_turn",{p_code:roomCode}).then(({error:rpcError})=>{
           if(rpcError) setError(rpcError.message);
