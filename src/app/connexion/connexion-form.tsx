@@ -14,7 +14,8 @@ export default function ConnexionForm({ initialMode = "register", redirectTo = "
   const [username, setUsername] = useState("");
   const [pin, setPin] = useState("");
   const [pinConfirmation, setPinConfirmation] = useState("");
-  const [busy, setBusy] = useState(false);\n  const [authReady, setAuthReady] = useState(redirectTo !== "/admin");
+  const [busy, setBusy] = useState(false);
+  const [authReady, setAuthReady] = useState(redirectTo !== "/admin");
   const [error, setError] = useState("");
 
   useEffect(() => {
