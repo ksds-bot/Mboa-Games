@@ -47,7 +47,7 @@ const OCT_HOME_LANES: [number,number][][] = [
   [[1,10],[2,9],[3,8],[4,8],[5,8],[5,7]],
   [[5,11],[5,10],[5,9],[6,9],[6,8],[6,7]],
   [[11,10],[10,9],[9,8],[8,8],[7,8],[7,7]],
-  [[11,5],[10,5],[9,5],[8,5],[7,5],[7,6]],
+  [[11,5],[10,5],[9,6],[8,6],[8,7],[7,6]],
   [[11,2],[10,3],[9,4],[8,4],[7,4],[7,5]],
   [[5,1],[5,2],[5,3],[6,3],[6,4],[6,5]],
 ];
@@ -105,7 +105,7 @@ function LudoBoard({ game, players, myTurn, onMove }: { game: Game; players: Pla
     <div className="overflow-hidden rounded-[26px] border border-[#e5dfcc] bg-[#f4f0e4] p-2 shadow-[0_24px_70px_#07110b66] sm:p-4">
       <svg viewBox="0 0 520 520" className="block w-full" role="img" aria-label="Plateau Ludo octogonal, huit bases et huit couloirs d’arrivée">
         <rect x="0" y="0" width="520" height="520" rx="18" fill="#e7e2d2"/>
-        {OCT_BASE_SPOTS.map((spots,i)=>{const coords=spots[0];const minR=Math.min(...spots.map(s=>s[0]));const maxR=Math.max(...spots.map(s=>s[0]));const minC=Math.min(...spots.map(s=>s[1]));const maxC=Math.max(...spots.map(s=>s[1]));return <g key={"obase"+i}><rect x={minC*40} y={minR*40} width={(maxC-minC+1)*40} height={(maxR-minR+1)*40} rx="10" fill={COLORS[i]} opacity=".28"/>{spots.map(([r,c],j)=>{const [x,y]=cellCenter(r,c);return <circle key={j} cx={x} cy={y} r="13" fill={COLORS[i]} stroke="#fff" strokeWidth="4"/>;})}</g>;})}
+        {OCT_BASE_SPOTS.map((spots,i)=>{const minR=Math.min(...spots.map(s=>s[0]));const maxR=Math.max(...spots.map(s=>s[0]));const minC=Math.min(...spots.map(s=>s[1]));const maxC=Math.max(...spots.map(s=>s[1]));return <g key={"obase"+i}><rect x={minC*40} y={minR*40} width={(maxC-minC+1)*40} height={(maxR-minR+1)*40} rx="10" fill={COLORS[i]} opacity=".28"/>{spots.map(([r,c],j)=>{const [x,y]=cellCenter(r,c);return <circle key={j} cx={x} cy={y} r="13" fill={COLORS[i]} stroke="#fff" strokeWidth="4"/>;})}</g>;})}
         {OCT_TRACK.map(([r,c],i)=>{const [x,y]=cellCenter(r,c);const playerStart=[0,6,12,18,24,30,36,42].indexOf(i);return <g key={"otrack"+i}><rect x={c*40+1} y={r*40+1} width="38" height="38" fill={playerStart>=0?COLORS[playerStart]:"#fffdf7"} stroke="#c9c4b7" strokeWidth="1.5"/>{OCT_SAFE.has(i)&&<text x={x} y={y+7} fontSize="18" textAnchor="middle" fill="#8d8266">★</text>}</g>;})}
         {OCT_HOME_LANES.map((lane,i)=>lane.map(([r,c],j)=>{return <rect key={"olane"+i+"-"+j} x={c*40+1} y={r*40+1} width="38" height="38" fill={COLORS[i]} opacity=".9" stroke="#c9c4b7" strokeWidth="1.5"/>;}))}
         <rect x="220" y="220" width="80" height="80" rx="12" fill="#f8f5e9" stroke="#c9c4b7" strokeWidth="2"/>
