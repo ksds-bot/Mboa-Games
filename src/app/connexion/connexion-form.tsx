@@ -31,6 +31,7 @@ export default function ConnexionForm({ initialMode = "register", redirectTo = "
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!authReady) return;
     const cleanUsername = username.trim().toLowerCase();
     if (!/^[a-z0-9_]{3,20}$/.test(cleanUsername)) {
       setError("Ton pseudo doit contenir 3 à 20 lettres, chiffres ou _.");
