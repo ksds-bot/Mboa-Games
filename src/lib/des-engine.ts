@@ -37,7 +37,17 @@ export function evaluateThrows(
   diceCount: number,
   millionFace: number,
 ): RoundResult {
+  if (!Number.isInteger(playerCount) || playerCount < 2 || playerCount > 10) {
+    throw new Error("Nombre de joueurs invalide.");
+  }
+  if (!Number.isInteger(diceCount) || diceCount < 2 || diceCount > 4) {
+    throw new Error("Nombre de dés invalide.");
+  }
+  if (!Number.isInteger(millionFace) || millionFace < 1 || millionFace > 6) {
+    throw new Error("Chiffre du Million invalide.");
+  }
   if (throws.length === 0) throw new Error("Aucun lancer à comparer.");
+  if (throws.length > playerCount) throw new Error("Trop de lancers pour cette manche.");
   const seen = new Set<number>();
   for (const item of throws) {
     if (!Number.isInteger(item.playerIndex) || item.playerIndex < 0 || item.playerIndex >= playerCount || seen.has(item.playerIndex)) {
