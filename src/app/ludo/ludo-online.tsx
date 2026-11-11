@@ -6,8 +6,8 @@ import { createClient } from "@/lib/supabase/client";
 import { ArrowLeft, Check, Copy, Crown, Dices, DoorOpen, LoaderCircle, LogIn, RefreshCw, ShieldCheck, Users, Wifi } from "lucide-react";
 
 type Player = { userId: string; seat: number; ready: boolean; username: string; colorIndex?: number | null };
-type Room = { id: string; code: string; status: "waiting" | "playing" | "finished"; maxPlayers: number; hostId: string };
-type Game = { playerOrder: string[]; tokens: number[][]; currentPlayer: number; lastRoll: number | null; consecutiveSixes: number; winner: number | null; turnNumber: number; turnDeadlineAt?: string; boardVariant?: "classic4" | "octagonal8"; trackLength?: number; routeEnd?: number; homeStart?: number; goalProgress?: number };
+type Room = { id: string; code: string; status: "waiting" | "playing" | "finished"; maxPlayers: number; hostId: string; pointsStake?: number };
+type Game = { playerOrder: string[]; tokens: number[][]; currentPlayer: number; lastRoll: number | null; consecutiveSixes: number; winner: number | null; turnNumber: number; turnDeadlineAt?: string; boardVariant?: "classic4" | "octagonal8"; trackLength?: number; routeEnd?: number; homeStart?: number; goalProgress?: number; pointsStake?: number; pointsPot?: number };
 type ChatMessage = { id: number; body: string; userId: string; username: string; createdAt: string };
 type Snapshot = { room: Room; players: Player[]; game: Game | null };
 const COLORS = ["#ed5757", "#4bbd82", "#efc84a", "#5796e8", "#a66be0", "#ef8b42", "#36b8b2", "#e879ae"];
@@ -299,6 +299,14 @@ export default function LudoOnline() {
       await refreshRoom(roomCode);
     });
   }
+  async function setStake(pointsStake:number){
+    await run(async()=>{
+      const {error:rpcError}=await supabase.rpc("ludo_set_stake",{p_code:roomCode,p_points_stake:pointsStake});
+      if(rpcError)throw rpcError;
+      await refreshRoom(roomCode);
+      setNotice("Mise mise à jour. Les autres joueurs doivent confirmer à nouveau.");
+    });
+  }
   async function startGame(){
     await run(async()=>{
       const {data,error:authError}=await supabase.auth.getUser();
@@ -340,9 +348,9 @@ export default function LudoOnline() {
     await run(async()=>{
       const {data,error:rpcError}=await supabase.rpc("ludo_move",{p_code:roomCode,p_token_index:index});
       if(rpcError)throw rpcError;
-      const result=data as {state:Game;captured:boolean;winner:boolean};
+      const result=data as {state:Game;captured:boolean;winner:boolean;pointsPot?:number};
       setSnapshot(old=>old?{...old,game:result.state}:old);
-      if(result.winner)setNotice("🏆 Victoire ! Tu as ramené tes quatre pions à la maison.");
+      if(result.winner)setNotice("🏆 Victoire ! "+(result.pointsPot? "Tu remportes "+result.pointsPot+" points virtuels.":"Tu as ramené tes quatre pions à la maison."));
       else if(result.captured)setNotice("💥 Capture ! Tu rejoues.");
       else setNotice("Pion déplacé. Le jeu passe au joueur suivant.");
     });
@@ -416,6 +424,8 @@ export default function LudoOnline() {
                 <div className="rounded-2xl border border-white/10 bg-black/15 p-5">
                   <div className="flex items-center justify-between"><h3 className="font-black">Joueurs · {players.length}/{room.maxPlayers}</h3><span className="text-[10px] font-black uppercase tracking-widest text-[#d2f178]">{room.status==="waiting"?"En attente":room.status==="playing"?"En direct":"Terminée"}</span></div>
                   <div className="mt-4 space-y-3">{players.map((p,i)=><div key={p.userId} className="flex items-center justify-between gap-3 rounded-xl bg-white/[.04] p-3"><div className="flex min-w-0 items-center gap-3"><span className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-sm font-black text-[#102018]" style={{background:playerColor(players,i)}}>{p.username.slice(0,1).toUpperCase()}</span><div className="min-w-0"><p className="truncate text-sm font-bold">{p.username}{p.userId===userId?" (toi)":""}</p><p className="text-[10px] text-white/45">{COLOR_NAMES[p.colorIndex ?? i]} {p.userId===room.hostId?"· Hôte":""}</p></div></div><span className={p.ready?"text-[#d2f178]":"text-white/35"}>{p.ready?<Check size={19}/>: "Pas prêt"}</span></div>)}</div>
+                  {room.status==="waiting"&&isHost&&<div className="mt-4 rounded-xl bg-white/[.04] p-3"><label className="block text-xs font-black text-white/70">Mise en points virtuels par joueur</label><select className="ludo-input mt-2" value={room.pointsStake??0} disabled={busy} onChange={e=>void setStake(Number(e.target.value))}><option value={0}>Gratuit · 0 point</option><option value={10}>10 points</option><option value={25}>25 points</option><option value={50}>50 points</option><option value={100}>100 points</option><option value={250}>250 points</option><option value={500}>500 points</option></select><p className="mt-2 text-[10px] leading-4 text-white/45">La mise est débitée au lancement uniquement si tous les joueurs ont assez de points. Le gagnant reçoit le pot complet.</p></div>}
+                  {(room.pointsStake??0)>0&&<p className="rounded-xl bg-[#d2f178]/10 p-3 text-center text-xs font-bold text-[#d2f178]">Pot prévu : {(room.pointsStake??0)*players.length} points · {(room.pointsStake??0)} par joueur</p>}
                   {room.status==="waiting"&&myPlayer&&<div className="mt-4 rounded-xl bg-white/[.04] p-3"><p className="mb-3 text-xs font-black text-white/70">Choisis ta couleur</p><div className="flex flex-wrap gap-2">{Array.from({length:room.maxPlayers>4?8:4},(_,i)=>{const occupied=players.some(p=>p.userId!==userId&&(p.colorIndex??p.seat)===i);const selected=(myPlayer.colorIndex??myPlayer.seat)===i;return <button key={i} type="button" title={COLOR_NAMES[i]} aria-label={"Choisir la couleur "+COLOR_NAMES[i]} disabled={busy||occupied} onClick={()=>void setColor(i)} className={"h-9 w-9 rounded-full border-2 transition "+(selected?"border-white ring-2 ring-[#d2f178]":"border-white/20")+(occupied?" opacity-25":"")} style={{background:COLORS[i]}}/>;})}</div></div>}
                   {room.status==="waiting"&&<><button className="ludo-secondary mt-4 w-full" disabled={busy} onClick={toggleReady}>{myPlayer?.ready?"Annuler ma préparation":"Je suis prêt"}</button>{isHost&&<button className="ludo-btn mt-3 w-full" disabled={busy||!readyToStart} onClick={startGame}><Crown size={17}/>Démarrer la partie</button>}<p className="mt-3 text-center text-[11px] text-white/45">{players.length<2?"Il faut au moins 2 joueurs.":!readyToStart?"Tous les joueurs doivent être prêts.":"Tout le monde est prêt !"}</p></>}
                 </div>
