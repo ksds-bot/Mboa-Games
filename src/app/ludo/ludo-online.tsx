@@ -101,6 +101,46 @@ function legalMoves(game: Game): number[] {
 function LudoBoard({ game, players, myTurn, onMove }: { game: Game; players: Player[]; myTurn: boolean; onMove: (index: number) => void }) {
   const moves = legalMoves(game);
   const octagonal = isOctagonal(game);
+  const [visualGame,setVisualGame] = useState(game);
+  const previousGameRef = useRef(game);
+  const animationTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const animationInProgressRef = useRef(false);
+  useEffect(() => {
+    const previous = previousGameRef.current;
+    previousGameRef.current = game;
+    const moved: { player: number; token: number; from: number; to: number }[] = [];
+    for (let p=0;p<game.tokens.length;p++) for (let t=0;t<4;t++) {
+      const from = previous.tokens[p]?.[t];
+      const to = game.tokens[p]?.[t];
+      if (from !== undefined && to !== undefined && to > from && from >= -1) moved.push({player:p,token:t,from,to});
+    }
+    if (moved.length === 1) {
+      if (animationTimerRef.current) window.clearInterval(animationTimerRef.current);
+      const pawn = moved[0];
+      const tokens = game.tokens.map(row=>[...row]);
+      tokens[pawn.player][pawn.token] = pawn.from;
+      setVisualGame({...game,tokens});
+      animationInProgressRef.current = true;
+      let step = pawn.from === -1 ? 0 : pawn.from + 1;
+      animationTimerRef.current = window.setInterval(() => {
+        const nextTokens = game.tokens.map(row=>[...row]);
+        nextTokens[pawn.player][pawn.token] = step;
+        setVisualGame({...game,tokens:nextTokens});
+        if (step >= pawn.to) {
+          if (animationTimerRef.current) window.clearInterval(animationTimerRef.current);
+          animationTimerRef.current = null;
+          animationInProgressRef.current = false;
+          setVisualGame(game);
+        }
+        step += 1;
+      }, 115);
+    } else if (!animationInProgressRef.current) {
+      setVisualGame(game);
+    }
+  }, [game]);
+  useEffect(() => () => {
+    if (animationTimerRef.current) window.clearInterval(animationTimerRef.current);
+  }, []);
   if (octagonal) return (
     <div className="overflow-hidden rounded-[26px] border border-[#e5dfcc] bg-[#f4f0e4] p-2 shadow-[0_24px_70px_#07110b66] sm:p-4">
       <svg viewBox="0 0 520 520" className="block w-full" role="img" aria-label="Plateau Ludo octogonal, huit bases et huit couloirs d’arrivée">
@@ -109,7 +149,7 @@ function LudoBoard({ game, players, myTurn, onMove }: { game: Game; players: Pla
         {OCT_TRACK.map(([r,c],i)=>{const [x,y]=cellCenter(r,c);const playerStart=[0,6,12,18,24,30,36,42].indexOf(i);return <g key={"otrack"+i}><rect x={c*40+1} y={r*40+1} width="38" height="38" fill={playerStart>=0?COLORS[playerStart]:"#fffdf7"} stroke="#c9c4b7" strokeWidth="1.5"/>{OCT_SAFE.has(i)&&<text x={x} y={y+7} fontSize="18" textAnchor="middle" fill="#8d8266">★</text>}</g>;})}
         {OCT_HOME_LANES.map((lane,i)=>lane.map(([r,c],j)=>{return <rect key={"olane"+i+"-"+j} x={c*40+1} y={r*40+1} width="38" height="38" fill={COLORS[i]} opacity=".9" stroke="#c9c4b7" strokeWidth="1.5"/>;}))}
         <rect x="220" y="220" width="80" height="80" rx="12" fill="#f8f5e9" stroke="#c9c4b7" strokeWidth="2"/>
-        {game.tokens.slice(0,game.playerOrder.length).map((row,p)=>row.map((progress,t)=>{const [x,y]=tokenPoint(p,progress,t,game);const movable=myTurn&&p===game.currentPlayer&&moves.includes(t);return <g key={p+"-"+t} onClick={()=>movable&&onMove(t)} className={movable?"cursor-pointer":""} role={movable?"button":undefined} tabIndex={movable?0:undefined} aria-label={"Pion "+(t+1)+", "+COLOR_NAMES[p]} onKeyDown={e=>{if(movable&&(e.key==="Enter"||e.key===" "))onMove(t);}}>{movable&&<circle cx={x} cy={y} r="18" fill="none" stroke="#19251d" strokeWidth="3" strokeDasharray="4 4"/>}<circle cx={x} cy={y+3} r="13" fill="#000" opacity=".22"/><circle className="ludo-pawn" cx={x} cy={y} r="12" fill={COLORS[p]} stroke="#fff" strokeWidth="3"/><circle cx={x-3} cy={y-3} r="3" fill="#fff" opacity=".75"/></g>;}))}
+        {visualGame.tokens.slice(0,game.playerOrder.length).map((row,p)=>row.map((progress,t)=>{const [x,y]=tokenPoint(p,progress,t,visualGame);const movable=myTurn&&p===game.currentPlayer&&moves.includes(t);return <g key={p+"-"+t} onClick={()=>movable&&onMove(t)} className={movable?"cursor-pointer":""} role={movable?"button":undefined} tabIndex={movable?0:undefined} aria-label={"Pion "+(t+1)+", "+COLOR_NAMES[p]} onKeyDown={e=>{if(movable&&(e.key==="Enter"||e.key===" "))onMove(t);}}>{movable&&<circle cx={x} cy={y} r="18" fill="none" stroke="#19251d" strokeWidth="3" strokeDasharray="4 4"/>}<circle cx={x} cy={y+3} r="13" fill="#000" opacity=".22"/><circle className="ludo-pawn" cx={x} cy={y} r="12" fill={COLORS[p]} stroke="#fff" strokeWidth="3"/><circle cx={x-3} cy={y-3} r="3" fill="#fff" opacity=".75"/></g>;}))}
       </svg>
       <div className="flex flex-wrap justify-center gap-3 px-2 pb-2 text-[11px] font-extrabold uppercase tracking-wide text-[#586356]">{players.map((p,i)=><span key={p.userId} className="inline-flex items-center gap-1.5"><i className="h-2.5 w-2.5 rounded-full" style={{background:COLORS[i]}}/>{p.username}</span>)}</div>
     </div>
@@ -122,7 +162,7 @@ function LudoBoard({ game, players, myTurn, onMove }: { game: Game; players: Pla
         {TRACK.map(([r,c],i)=>{const [x,y]=cellCenter(r,c);const playerStart=[0,13,26,39].indexOf(i);return <g key={"track"+i}><rect x={c*40+1} y={r*40+1} width="38" height="38" fill={playerStart>=0?COLORS[playerStart]:"#fffdf7"} stroke="#c9c4b7" strokeWidth="1.5"/>{SAFE.has(i)&&<text x={x} y={y+7} fontSize="22" textAnchor="middle" fill="#a79b78">★</text>}</g>;})}
         {HOME_LANES.map((lane,i)=>lane.map(([r,c],j)=>{return <rect key={"lane"+i+"-"+j} x={c*40+1} y={r*40+1} width="38" height="38" fill={COLORS[i]} opacity=".88" stroke="#c9c4b7" strokeWidth="1.5"/>;}))}
         <path d="M240 240 L360 240 L360 360 L240 360 Z" fill="#f8f5e9" stroke="#c9c4b7" strokeWidth="2"/><path d="M240 240 L360 240 L300 300 Z" fill={COLORS[0]}/><path d="M360 240 L360 360 L300 300 Z" fill={COLORS[1]}/><path d="M360 360 L240 360 L300 300 Z" fill={COLORS[2]}/><path d="M240 360 L240 240 L300 300 Z" fill={COLORS[3]}/>
-        {game.tokens.slice(0,game.playerOrder.length).map((row,p)=>row.map((progress,t)=>{const [x,y]=tokenPoint(p,progress,t,game);const movable=myTurn&&p===game.currentPlayer&&moves.includes(t);return <g key={p+"-"+t} onClick={()=>movable&&onMove(t)} className={movable?"cursor-pointer":""} role={movable?"button":undefined} tabIndex={movable?0:undefined} aria-label={"Pion "+(t+1)+", "+COLOR_NAMES[p]} onKeyDown={e=>{if(movable&&(e.key==="Enter"||e.key===" "))onMove(t);}}>{movable&&<circle cx={x} cy={y} r="18" fill="none" stroke="#19251d" strokeWidth="3" strokeDasharray="4 4"/>}<circle cx={x} cy={y+3} r="13" fill="#000" opacity=".22"/><circle className="ludo-pawn" cx={x} cy={y} r="12" fill={COLORS[p]} stroke="#fff" strokeWidth="3"/><circle cx={x-3} cy={y-3} r="3" fill="#fff" opacity=".75"/></g>;}))}
+        {visualGame.tokens.slice(0,game.playerOrder.length).map((row,p)=>row.map((progress,t)=>{const [x,y]=tokenPoint(p,progress,t,visualGame);const movable=myTurn&&p===game.currentPlayer&&moves.includes(t);return <g key={p+"-"+t} onClick={()=>movable&&onMove(t)} className={movable?"cursor-pointer":""} role={movable?"button":undefined} tabIndex={movable?0:undefined} aria-label={"Pion "+(t+1)+", "+COLOR_NAMES[p]} onKeyDown={e=>{if(movable&&(e.key==="Enter"||e.key===" "))onMove(t);}}>{movable&&<circle cx={x} cy={y} r="18" fill="none" stroke="#19251d" strokeWidth="3" strokeDasharray="4 4"/>}<circle cx={x} cy={y+3} r="13" fill="#000" opacity=".22"/><circle className="ludo-pawn" cx={x} cy={y} r="12" fill={COLORS[p]} stroke="#fff" strokeWidth="3"/><circle cx={x-3} cy={y-3} r="3" fill="#fff" opacity=".75"/></g>;}))}
       </svg>
       <div className="flex flex-wrap justify-center gap-3 px-2 pb-2 text-[11px] font-extrabold uppercase tracking-wide text-[#586356]">{players.map((p,i)=><span key={p.userId} className="inline-flex items-center gap-1.5"><i className="h-2.5 w-2.5 rounded-full" style={{background:COLORS[i]}}/>{p.username}</span>)}</div>
     </div>
