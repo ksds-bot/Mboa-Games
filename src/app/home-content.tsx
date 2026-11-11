@@ -10,7 +10,7 @@ import {
 const games = [
   { name: "Jeu de cartes", subtitle: "Les cartes comme au quartier", description: "Bluffe, réfléchis et bats les autres autour de la table.", icon: "🃏", tone: "cards", label: "À découvrir", href: "/cartes", featured: true },
   { name: "Le 2 Dès", subtitle: "Le Million du quartier", description: "Lance les dés. Tente ta chance. Fais parler les scores.", icon: "🎲", tone: "dice", label: "Jouable", href: "/des" },
-  { name: "Ludo", subtitle: "Le classique indémodable", description: "Ramène tes pions à la maison avant les autres.", icon: "🎯", tone: "ludo", label: "Bientôt" },
+  { name: "Ludo", subtitle: "Le classique indémodable", description: "Ramène tes pions à la maison avant les autres.", icon: "🎯", tone: "ludo", label: "Jouable", href: "/ludo" },
   { name: "Damier", subtitle: "La tête froide, le bon coup", description: "Anticipe, piège et prends le dessus.", icon: "♟️", tone: "checkers", label: "Bientôt" },
   { name: "Quiz 237", subtitle: "Tu connais vraiment le pays ?", description: "Culture, musique, sport et anecdotes du Cameroun.", icon: "🧠", tone: "quiz", label: "Bientôt" },
   { name: "Adages", subtitle: "La sagesse du village", description: "Retrouve les proverbes et complète les expressions.", icon: "🗣️", tone: "adages", label: "Bientôt" },
