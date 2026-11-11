@@ -89,7 +89,6 @@ function LudoBoard({ game, players, myTurn, onMove }: { game: Game; players: Pla
 export default function LudoOnline() {
   const supabase = useMemo(() => createClient(), []);
   const [userId,setUserId] = useState("");
-  const [username,setUsername] = useState("");
   const [codeInput,setCodeInput] = useState("");
   const [roomCode,setRoomCode] = useState("");
   const [snapshot,setSnapshot] = useState<Snapshot|null>(null);
@@ -113,8 +112,6 @@ export default function LudoOnline() {
       if(!active)return;
       if(data.user){
         setUserId(data.user.id);
-        const {data:profile}=await supabase.from("profiles").select("username,display_name").eq("id",data.user.id).maybeSingle();
-        if(active)setUsername(profile?.username||profile?.display_name||"Joueur");
       }
     });
     return ()=>{active=false;};
@@ -204,7 +201,6 @@ export default function LudoOnline() {
   const game=snapshot?.game??null;
   const myPlayer=players.find(p=>p.userId===userId);
   const isHost=!!room&&room.hostId===userId;
-  const myIndex=game?game.playerOrder.indexOf(userId):-1;
   const myTurn=!!game&&game.winner===null&&game.playerOrder[game.currentPlayer]===userId;
   const moves=game?legalMoves(game):[];
   const readyToStart=players.length>=2&&players.every(p=>p.ready);
@@ -264,7 +260,7 @@ export default function LudoOnline() {
                   {room.status==="waiting"&&<><button className="ludo-secondary mt-4 w-full" disabled={busy} onClick={toggleReady}>{myPlayer?.ready?"Annuler ma préparation":"Je suis prêt"}</button>{isHost&&<button className="ludo-btn mt-3 w-full" disabled={busy||!readyToStart} onClick={startGame}><Crown size={17}/>Démarrer la partie</button>}<p className="mt-3 text-center text-[11px] text-white/45">{players.length<2?"Il faut au moins 2 joueurs.":!readyToStart?"Tous les joueurs doivent être prêts.":"Tout le monde est prêt !"}</p></>}
                 </div>
                 <div className="rounded-2xl border border-white/10 bg-black/15 p-5"><h3 className="font-black">Règles de base</h3><ul className="mt-3 space-y-2 text-xs leading-5 text-white/55"><li>• 4 pions par joueur, 2 à 4 joueurs.</li><li>• Un 6 permet de sortir un pion et donne un tour bonus.</li><li>• Capture un pion adverse pour rejouer.</li><li>• Les cases sûres protègent tes pions.</li><li>• Il faut arriver à la maison avec le chiffre exact.</li><li>• Trois 6 consécutifs font perdre le tour.</li></ul></div>
-                <button className="ludo-secondary w-full" onClick={()=>{setSnapshot(null);setRoomCode("");setLastRoll(null);setNotice("Tu as quitté l’affichage de cette salle.");}}><RefreshCw size={15} className="mr-2 inline"/>Quitter l’écran de la salle</button>
+                <button className="ludo-secondary w-full" onClick={()=>{setSnapshot(null);setRoomCode("");setLastRoll(null);setNotice("Tu as quitté l’affichage de cette salle.");}}><RefreshCw size={15} className="mr-2 inline"/>Masquer la salle</button>
               </aside>
             </div>
           )}
