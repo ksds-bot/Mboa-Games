@@ -197,9 +197,11 @@ export default async function ProfilPage() {
             <p className="dashboard-muted-note">Garde ton code PIN secret. Il te permet de retrouver ce même compte sur un autre téléphone.</p>
           </section>
 
+          <section className="dashboard-panel dashboard-games-panel"><div className="dashboard-panel-heading"><div><p className="dashboard-kicker">TON ESPACE DE JEU</p><h2>Choisir une partie</h2></div><span>Accès direct</span></div><div className="dashboard-games-grid"><Link href="/cartes"><span>🃏</span><div><strong>CHECK!</strong><small>Jouer maintenant</small></div><b>→</b></Link><Link href="/des"><span>🎲</span><div><strong>Le 2 Dès</strong><small>Jouer maintenant</small></div><b>→</b></Link><div className="dashboard-game-disabled"><span>🎯</span><div><strong>Ludo</strong><small>Bientôt disponible</small></div><b>…</b></div><div className="dashboard-game-disabled"><span>♟️</span><div><strong>Damier</strong><small>Bientôt disponible</small></div><b>…</b></div></div></section>
+
           <section className="dashboard-bottom-cta">
             <div><strong>Prêt pour une nouvelle partie ?</strong><p>Ton compte te suit dans tous les jeux Mboa Games.</p></div>
-            <Link href="/">Choisir un jeu <span>→</span></Link>
+            <Link href="/cartes">Lancer CHECK! <span>→</span></Link>
           </section>
           <div className="dashboard-footer-actions"><Link href="/">Retour à l'accueil</Link><ProfileActions /></div>
         </div>
