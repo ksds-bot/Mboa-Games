@@ -125,13 +125,18 @@ export default function LudoOnline() {
 
   useEffect(()=>{
     let active = true;
-    supabase.auth.getUser().then(async ({data})=>{
-      if(!active)return;
-      if(data.user){
-        setUserId(data.user.id);
-      }
+    const {data:{subscription}} = supabase.auth.onAuthStateChange((_event,session)=>{
+      if(active)setUserId(session?.user?.id??"");
     });
-    return ()=>{active=false;};
+    supabase.auth.getUser().then(({data,error:authError})=>{
+      if(!active)return;
+      if(authError){setError(authError.message);return;}
+      setUserId(data.user?.id??"");
+    });
+    return ()=>{
+      active=false;
+      subscription.unsubscribe();
+    };
   },[supabase]);
 
   useEffect(()=>{
@@ -145,8 +150,12 @@ export default function LudoOnline() {
 
   const run = async (task:()=>Promise<void>) => {
     setBusy(true);setError("");
-    try{await task();}catch(e){setError(e instanceof Error?e.message:"Une erreur est survenue.");}
-    finally{setBusy(false);}
+    try{await task();}catch(e){
+      const message = e && typeof e === "object" && "message" in e && typeof e.message === "string"
+        ? e.message
+        : e instanceof Error ? e.message : "Une erreur est survenue.";
+      setError(message);
+    }finally{setBusy(false);}
   };
   async function createRoom(){
     await run(async()=>{
@@ -180,6 +189,12 @@ export default function LudoOnline() {
   }
   async function startGame(){
     await run(async()=>{
+      const {data,error:authError}=await supabase.auth.getUser();
+      if(authError)throw authError;
+      const currentUserId=data.user?.id??"";
+      setUserId(currentUserId);
+      if(!currentUserId)throw new Error("Ta session a expiré. Reconnecte-toi pour démarrer la partie.");
+      if(snapshot?.room.hostId!==currentUserId)throw new Error("Ce compte n’est pas celui qui a créé la salle. Reconnecte-toi avec le compte de l’hôte.");
       const {error:rpcError}=await supabase.rpc("ludo_start_room",{p_code:roomCode});
       if(rpcError)throw rpcError;
       await refreshRoom(roomCode);
