@@ -25,7 +25,7 @@ begin
   if v_user is null then raise exception 'Connecte-toi pour créer une salle.'; end if;
   if p_max_players < 2 or p_max_players > 4 then raise exception 'Une salle Ludo accepte 2 à 4 joueurs.'; end if;
   loop
-    v_code := upper(substr(encode(gen_random_bytes(5), 'hex'), 1, 6));
+    v_code := upper(substr(encode(extensions.gen_random_bytes(5), 'hex'), 1, 6));
     exit when not exists (select 1 from public.rooms r where r.code = v_code);
   end loop;
   insert into public.rooms(code,game_type,host_id,max_players,is_private,status)
