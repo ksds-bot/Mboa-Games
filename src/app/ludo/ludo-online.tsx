@@ -7,11 +7,11 @@ import { ArrowLeft, Check, Copy, Crown, Dices, DoorOpen, LoaderCircle, LogIn, Re
 
 type Player = { userId: string; seat: number; ready: boolean; username: string };
 type Room = { id: string; code: string; status: "waiting" | "playing" | "finished"; maxPlayers: number; hostId: string };
-type Game = { playerOrder: string[]; tokens: number[][]; currentPlayer: number; lastRoll: number | null; consecutiveSixes: number; winner: number | null; turnNumber: number; turnDeadlineAt?: string };
+type Game = { playerOrder: string[]; tokens: number[][]; currentPlayer: number; lastRoll: number | null; consecutiveSixes: number; winner: number | null; turnNumber: number; turnDeadlineAt?: string; boardVariant?: "classic4" | "octagonal8"; trackLength?: number; routeEnd?: number; homeStart?: number; goalProgress?: number };
 type ChatMessage = { id: number; body: string; userId: string; username: string; createdAt: string };
 type Snapshot = { room: Room; players: Player[]; game: Game | null };
-const COLORS = ["#ed5757", "#4bbd82", "#efc84a", "#5796e8"];
-const COLOR_NAMES = ["Rouge", "Vert", "Jaune", "Bleu"];
+const COLORS = ["#ed5757", "#4bbd82", "#efc84a", "#5796e8", "#a66be0", "#ef8b42", "#36b8b2", "#e879ae"];
+const COLOR_NAMES = ["Rouge", "Vert", "Jaune", "Bleu", "Violet", "Orange", "Turquoise", "Rose"];
 const TRACK: [number, number][] = [
   [6,1],[6,2],[6,3],[6,4],[6,5],[5,6],[4,6],[3,6],[2,6],[1,6],[0,6],[0,7],[0,8],
   [1,8],[2,8],[3,8],[4,8],[5,8],[6,9],[6,10],[6,11],[6,12],[6,13],[6,14],[7,14],
@@ -20,9 +20,7 @@ const TRACK: [number, number][] = [
   [7,0],[6,0],
 ];
 const SAFE = new Set([0,8,13,21,26,34,39,47]);
-const BASES = [
-  { x: 0, y: 0 }, { x: 9, y: 0 }, { x: 9, y: 9 }, { x: 0, y: 9 },
-];
+const BASES = [{ x: 0, y: 0 }, { x: 9, y: 0 }, { x: 9, y: 9 }, { x: 0, y: 9 }];
 const HOME_LANES: [number, number][][] = [
   [[7,1],[7,2],[7,3],[7,4],[7,5],[7,6]],
   [[1,7],[2,7],[3,7],[4,7],[5,7],[6,7]],
@@ -30,38 +28,68 @@ const HOME_LANES: [number, number][][] = [
   [[13,7],[12,7],[11,7],[10,7],[9,7],[8,7]],
 ];
 const BASE_SPOTS: [number, number][][] = [
-  [[1,1],[1,4],[4,1],[4,4]],
-  [[1,10],[1,13],[4,10],[4,13]],
-  [[10,10],[10,13],[13,10],[13,13]],
-  [[10,1],[10,4],[13,1],[13,4]],
+  [[1,1],[1,4],[4,1],[4,4]], [[1,10],[1,13],[4,10],[4,13]],
+  [[10,10],[10,13],[13,10],[13,13]], [[10,1],[10,4],[13,1],[13,4]],
 ];
-
-function cellCenter(row: number, col: number): [number, number] {
-  return [20 + col * 40, 20 + row * 40];
+function makeOctTrack(): [number, number][] {
+  const cells: [number, number][] = [];
+  for (let c=0;c<13;c++) cells.push([0,c]);
+  for (let r=1;r<13;r++) cells.push([r,12]);
+  for (let c=11;c>=0;c--) cells.push([12,c]);
+  for (let r=11;r>=1;r--) cells.push([r,0]);
+  return cells;
 }
-function tokenPoint(player: number, progress: number, token: number): [number, number] {
+const OCT_TRACK = makeOctTrack();
+const OCT_SAFE = new Set([0,6,12,18,24,30,36,42]);
+const OCT_HOME_LANES: [number,number][][] = [
+  [[1,1],[2,2],[3,3],[4,4],[5,4],[5,5]],
+  [[1,6],[2,6],[3,6],[4,6],[4,7],[5,6]],
+  [[1,10],[2,9],[3,8],[4,8],[5,8],[5,7]],
+  [[5,11],[5,10],[5,9],[6,9],[6,8],[6,7]],
+  [[11,10],[10,9],[9,8],[8,8],[7,8],[7,7]],
+  [[11,5],[10,5],[9,5],[8,5],[7,5],[7,6]],
+  [[11,2],[10,3],[9,4],[8,4],[7,4],[7,5]],
+  [[5,1],[5,2],[5,3],[6,3],[6,4],[6,5]],
+];
+const OCT_BASE_SPOTS: [number,number][][] = [
+  [[2,2],[2,4],[4,2],[4,4]], [[2,5],[2,7],[4,5],[4,7]],
+  [[2,8],[2,10],[4,8],[4,10]], [[5,8],[5,10],[7,8],[7,10]],
+  [[8,8],[8,10],[10,8],[10,10]], [[8,5],[8,7],[10,5],[10,7]],
+  [[8,2],[8,4],[10,2],[10,4]], [[5,2],[5,4],[7,2],[7,4]],
+];
+function cellCenter(row: number, col: number): [number, number] { return [20 + col * 40, 20 + row * 40]; }
+function isOctagonal(game: Game): boolean { return game.boardVariant === "octagonal8" || game.trackLength === 48; }
+function tokenPoint(player: number, progress: number, token: number, game: Game): [number, number] {
+  const octagonal = isOctagonal(game);
   let point: [number, number];
-  if (progress === -1) point = cellCenter(...BASE_SPOTS[player][token]);
+  if (progress === -1) point = cellCenter(...(octagonal ? OCT_BASE_SPOTS[player][token] : BASE_SPOTS[player][token]));
+  else if (octagonal && progress >= 47) point = cellCenter(...OCT_HOME_LANES[player][Math.min(5, progress - 47)]);
+  else if (octagonal) point = cellCenter(...OCT_TRACK[(player * 6 + progress) % 48]);
   else if (progress >= 51) point = cellCenter(...HOME_LANES[player][Math.min(5, progress - 51)]);
   else point = cellCenter(...TRACK[(player * 13 + progress) % 52]);
   const offsets: [number,number][] = [[-5,-5],[5,-5],[-5,5],[5,5]];
   return [point[0] + offsets[token][0], point[1] + offsets[token][1]];
 }
 function canMove(game: Game, player: number, token: number, roll: number): boolean {
-  const previous=game.tokens[player][token];
-  if(previous===57 || (previous===-1 && roll!==6))return false;
-  const next=previous===-1?0:previous+roll;
-  if(previous>=0&&next>57)return false;
-  for(let step=previous===-1?0:previous+1;step<=next&&step<=50;step++){
-    const square=(player*13+step)%52;
-    for(let owner=0;owner<game.playerOrder.length;owner++){
-      let count=0;
-      for(let other=0;other<4;other++){
-        if(owner===player&&other===token)continue;
-        const progress=game.tokens[owner][other];
-        if(progress>=0&&progress<=50&&(owner*13+progress)%52===square)count++;
+  const previous = game.tokens[player]?.[token];
+  const octagonal = isOctagonal(game);
+  const routeEnd = game.routeEnd ?? (octagonal ? 46 : 50);
+  const goal = game.goalProgress ?? (octagonal ? 52 : 57);
+  const trackLength = game.trackLength ?? (octagonal ? 48 : 52);
+  const offset = player * (octagonal ? 6 : 13);
+  if (previous === undefined || previous === goal || (previous === -1 && roll !== 6)) return false;
+  const next = previous === -1 ? 0 : previous + roll;
+  if (previous >= 0 && next > goal) return false;
+  for (let step = previous === -1 ? 0 : previous + 1; step <= next && step <= routeEnd; step++) {
+    const square = (offset + step) % trackLength;
+    for (let owner=0;owner<game.playerOrder.length;owner++) {
+      let count = 0;
+      for (let other=0;other<4;other++) {
+        if (owner === player && other === token) continue;
+        const progress = game.tokens[owner][other];
+        if (progress >= 0 && progress <= routeEnd && (owner * (octagonal ? 6 : 13) + progress) % trackLength === square) count++;
       }
-      if(count>=2)return false;
+      if (count >= 2) return false;
     }
   }
   return true;
@@ -70,36 +98,33 @@ function legalMoves(game: Game): number[] {
   if (game.lastRoll === null) return [];
   return game.tokens[game.currentPlayer].flatMap((_,i)=>canMove(game,game.currentPlayer,i,game.lastRoll!)?[i]:[]);
 }
-
 function LudoBoard({ game, players, myTurn, onMove }: { game: Game; players: Player[]; myTurn: boolean; onMove: (index: number) => void }) {
   const moves = legalMoves(game);
+  const octagonal = isOctagonal(game);
+  if (octagonal) return (
+    <div className="overflow-hidden rounded-[26px] border border-[#e5dfcc] bg-[#f4f0e4] p-2 shadow-[0_24px_70px_#07110b66] sm:p-4">
+      <svg viewBox="0 0 520 520" className="block w-full" role="img" aria-label="Plateau Ludo octogonal, huit bases et huit couloirs d’arrivée">
+        <rect x="0" y="0" width="520" height="520" rx="18" fill="#e7e2d2"/>
+        {OCT_BASE_SPOTS.map((spots,i)=>{const coords=spots[0];const minR=Math.min(...spots.map(s=>s[0]));const maxR=Math.max(...spots.map(s=>s[0]));const minC=Math.min(...spots.map(s=>s[1]));const maxC=Math.max(...spots.map(s=>s[1]));return <g key={"obase"+i}><rect x={minC*40} y={minR*40} width={(maxC-minC+1)*40} height={(maxR-minR+1)*40} rx="10" fill={COLORS[i]} opacity=".28"/>{spots.map(([r,c],j)=>{const [x,y]=cellCenter(r,c);return <circle key={j} cx={x} cy={y} r="13" fill={COLORS[i]} stroke="#fff" strokeWidth="4"/>;})}</g>;})}
+        {OCT_TRACK.map(([r,c],i)=>{const [x,y]=cellCenter(r,c);const playerStart=[0,6,12,18,24,30,36,42].indexOf(i);return <g key={"otrack"+i}><rect x={c*40+1} y={r*40+1} width="38" height="38" fill={playerStart>=0?COLORS[playerStart]:"#fffdf7"} stroke="#c9c4b7" strokeWidth="1.5"/>{OCT_SAFE.has(i)&&<text x={x} y={y+7} fontSize="18" textAnchor="middle" fill="#8d8266">★</text>}</g>;})}
+        {OCT_HOME_LANES.map((lane,i)=>lane.map(([r,c],j)=>{return <rect key={"olane"+i+"-"+j} x={c*40+1} y={r*40+1} width="38" height="38" fill={COLORS[i]} opacity=".9" stroke="#c9c4b7" strokeWidth="1.5"/>;}))}
+        <rect x="220" y="220" width="80" height="80" rx="12" fill="#f8f5e9" stroke="#c9c4b7" strokeWidth="2"/>
+        {game.tokens.slice(0,game.playerOrder.length).map((row,p)=>row.map((progress,t)=>{const [x,y]=tokenPoint(p,progress,t,game);const movable=myTurn&&p===game.currentPlayer&&moves.includes(t);return <g key={p+"-"+t} onClick={()=>movable&&onMove(t)} className={movable?"cursor-pointer":""} role={movable?"button":undefined} tabIndex={movable?0:undefined} aria-label={"Pion "+(t+1)+", "+COLOR_NAMES[p]} onKeyDown={e=>{if(movable&&(e.key==="Enter"||e.key===" "))onMove(t);}}>{movable&&<circle cx={x} cy={y} r="18" fill="none" stroke="#19251d" strokeWidth="3" strokeDasharray="4 4"/>}<circle cx={x} cy={y+3} r="13" fill="#000" opacity=".22"/><circle className="ludo-pawn" cx={x} cy={y} r="12" fill={COLORS[p]} stroke="#fff" strokeWidth="3"/><circle cx={x-3} cy={y-3} r="3" fill="#fff" opacity=".75"/></g>;}))}
+      </svg>
+      <div className="flex flex-wrap justify-center gap-3 px-2 pb-2 text-[11px] font-extrabold uppercase tracking-wide text-[#586356]">{players.map((p,i)=><span key={p.userId} className="inline-flex items-center gap-1.5"><i className="h-2.5 w-2.5 rounded-full" style={{background:COLORS[i]}}/>{p.username}</span>)}</div>
+    </div>
+  );
   return (
     <div className="overflow-hidden rounded-[26px] border border-[#e5dfcc] bg-[#f4f0e4] p-2 shadow-[0_24px_70px_#07110b66] sm:p-4">
       <svg viewBox="0 0 600 600" className="block w-full" role="img" aria-label="Plateau de Ludo en croix, quatre bases et parcours de 52 cases">
         <rect x="0" y="0" width="600" height="600" rx="18" fill="#e7e2d2"/>
-        {BASES.map((base,i)=><g key={"base"+i}>
-          <rect x={base.x*40} y={base.y*40} width="240" height="240" rx="12" fill={COLORS[i]}/>
-          <rect x={base.x*40+40} y={base.y*40+40} width="160" height="160" rx="12" fill="#faf8ef"/>
-          {BASE_SPOTS[i].map(([r,c],j)=>{const [x,y]=cellCenter(r,c);return <circle key={j} cx={x} cy={y} r="16" fill={COLORS[i]} stroke="#fff" strokeWidth="5"/>;})}
-        </g>)}
-        {TRACK.map(([r,c],i)=>{const [x,y]=cellCenter(r,c);const playerStart=[0,13,26,39].indexOf(i);return <g key={"track"+i}>
-          <rect x={c*40+1} y={r*40+1} width="38" height="38" fill={playerStart>=0?COLORS[playerStart]:"#fffdf7"} stroke="#c9c4b7" strokeWidth="1.5"/>
-          {SAFE.has(i)&&<text x={x} y={y+7} fontSize="22" textAnchor="middle" fill="#a79b78">★</text>}
-        </g>;})}
-        {HOME_LANES.map((lane,i)=>lane.map(([r,c],j)=>{const [x,y]=cellCenter(r,c);return <rect key={"lane"+i+"-"+j} x={c*40+1} y={r*40+1} width="38" height="38" fill={COLORS[i]} opacity=".88" stroke="#c9c4b7" strokeWidth="1.5"/>;}))}
-        <path d="M240 240 L360 240 L360 360 L240 360 Z" fill="#f8f5e9" stroke="#c9c4b7" strokeWidth="2"/>
-        <path d="M240 240 L360 240 L300 300 Z" fill={COLORS[0]}/><path d="M360 240 L360 360 L300 300 Z" fill={COLORS[1]}/>
-        <path d="M360 360 L240 360 L300 300 Z" fill={COLORS[2]}/><path d="M240 360 L240 240 L300 300 Z" fill={COLORS[3]}/>
-        {game.tokens.slice(0,game.playerOrder.length).map((row,p)=>row.map((progress,t)=>{const [x,y]=tokenPoint(p,progress,t);const movable=myTurn&&p===game.currentPlayer&&moves.includes(t);return <g key={p+"-"+t} onClick={()=>movable&&onMove(t)} className={movable?"cursor-pointer":""} role={movable?"button":undefined} tabIndex={movable?0:undefined} aria-label={`Pion ${t+1}, ${COLOR_NAMES[p]}`} onKeyDown={(e)=>{if(movable&&(e.key==="Enter"||e.key===" "))onMove(t);}}>
-          {movable&&<circle cx={x} cy={y} r="18" fill="none" stroke="#19251d" strokeWidth="3" strokeDasharray="4 4"/>}
-          <circle cx={x} cy={y+3} r="13" fill="#000" opacity=".22"/>
-          <circle className="ludo-pawn" cx={x} cy={y} r="12" fill={COLORS[p]} stroke="#fff" strokeWidth="3"/>
-          <circle cx={x-3} cy={y-3} r="3" fill="#fff" opacity=".75"/>
-        </g>;}))}
+        {BASES.map((base,i)=><g key={"base"+i}><rect x={base.x*40} y={base.y*40} width="240" height="240" rx="12" fill={COLORS[i]}/><rect x={base.x*40+40} y={base.y*40+40} width="160" height="160" rx="12" fill="#faf8ef"/>{BASE_SPOTS[i].map(([r,c],j)=>{const [x,y]=cellCenter(r,c);return <circle key={j} cx={x} cy={y} r="16" fill={COLORS[i]} stroke="#fff" strokeWidth="5"/>;})}</g>)}
+        {TRACK.map(([r,c],i)=>{const [x,y]=cellCenter(r,c);const playerStart=[0,13,26,39].indexOf(i);return <g key={"track"+i}><rect x={c*40+1} y={r*40+1} width="38" height="38" fill={playerStart>=0?COLORS[playerStart]:"#fffdf7"} stroke="#c9c4b7" strokeWidth="1.5"/>{SAFE.has(i)&&<text x={x} y={y+7} fontSize="22" textAnchor="middle" fill="#a79b78">★</text>}</g>;})}
+        {HOME_LANES.map((lane,i)=>lane.map(([r,c],j)=>{return <rect key={"lane"+i+"-"+j} x={c*40+1} y={r*40+1} width="38" height="38" fill={COLORS[i]} opacity=".88" stroke="#c9c4b7" strokeWidth="1.5"/>;}))}
+        <path d="M240 240 L360 240 L360 360 L240 360 Z" fill="#f8f5e9" stroke="#c9c4b7" strokeWidth="2"/><path d="M240 240 L360 240 L300 300 Z" fill={COLORS[0]}/><path d="M360 240 L360 360 L300 300 Z" fill={COLORS[1]}/><path d="M360 360 L240 360 L300 300 Z" fill={COLORS[2]}/><path d="M240 360 L240 240 L300 300 Z" fill={COLORS[3]}/>
+        {game.tokens.slice(0,game.playerOrder.length).map((row,p)=>row.map((progress,t)=>{const [x,y]=tokenPoint(p,progress,t,game);const movable=myTurn&&p===game.currentPlayer&&moves.includes(t);return <g key={p+"-"+t} onClick={()=>movable&&onMove(t)} className={movable?"cursor-pointer":""} role={movable?"button":undefined} tabIndex={movable?0:undefined} aria-label={"Pion "+(t+1)+", "+COLOR_NAMES[p]} onKeyDown={e=>{if(movable&&(e.key==="Enter"||e.key===" "))onMove(t);}}>{movable&&<circle cx={x} cy={y} r="18" fill="none" stroke="#19251d" strokeWidth="3" strokeDasharray="4 4"/>}<circle cx={x} cy={y+3} r="13" fill="#000" opacity=".22"/><circle className="ludo-pawn" cx={x} cy={y} r="12" fill={COLORS[p]} stroke="#fff" strokeWidth="3"/><circle cx={x-3} cy={y-3} r="3" fill="#fff" opacity=".75"/></g>;}))}
       </svg>
-      <div className="flex flex-wrap justify-center gap-3 px-2 pb-2 text-[11px] font-extrabold uppercase tracking-wide text-[#586356]">
-        {players.map((p,i)=><span key={p.userId} className="inline-flex items-center gap-1.5"><i className="h-2.5 w-2.5 rounded-full" style={{background:COLORS[i]}}/>{p.username}</span>)}
-      </div>
+      <div className="flex flex-wrap justify-center gap-3 px-2 pb-2 text-[11px] font-extrabold uppercase tracking-wide text-[#586356]">{players.map((p,i)=><span key={p.userId} className="inline-flex items-center gap-1.5"><i className="h-2.5 w-2.5 rounded-full" style={{background:COLORS[i]}}/>{p.username}</span>)}</div>
     </div>
   );
 }
@@ -108,6 +133,7 @@ export default function LudoOnline() {
   const supabase = useMemo(() => createClient(), []);
   const [userId,setUserId] = useState("");
   const [codeInput,setCodeInput] = useState("");
+  const [roomSize,setRoomSize] = useState(4);
   const [roomCode,setRoomCode] = useState("");
   const [snapshot,setSnapshot] = useState<Snapshot|null>(null);
   const [busy,setBusy] = useState(false);
@@ -198,7 +224,7 @@ export default function LudoOnline() {
   async function createRoom(){
     await run(async()=>{
       if(!userId)throw new Error("Connecte-toi pour jouer en ligne.");
-      const {data,error:rpcError}=await supabase.rpc("ludo_create_room",{p_max_players:4});
+      const {data,error:rpcError}=await supabase.rpc("ludo_create_room",{p_max_players:roomSize});
       if(rpcError)throw rpcError;
       const result=data as {id:string;code:string};
       await refreshRoom(result.code);
@@ -311,7 +337,7 @@ export default function LudoOnline() {
         </header>
         <section className="ludo-glass p-5 sm:p-8">
           <div className="flex flex-wrap items-center justify-between gap-4">
-            <div><p className="text-xs font-black tracking-[.25em] text-[#d2f178]">LE CLASSIQUE, ENTRE AMIS</p><h1 className="mt-2 text-4xl font-black sm:text-5xl">Ludo <span className="text-[#d2f178]">237</span></h1><p className="mt-3 max-w-xl text-sm leading-6 text-white/60">Crée une salle privée, partage ton code et joue en direct avec tes amis, chacun sur son téléphone.</p></div>
+            <div><p className="text-xs font-black tracking-[.25em] text-[#d2f178]">LE CLASSIQUE, ENTRE AMIS</p><h1 className="mt-2 text-4xl font-black sm:text-5xl">Ludo <span className="text-[#d2f178]">237</span></h1><p className="mt-3 max-w-xl text-sm leading-6 text-white/60">Joue en ligne sur le plateau classique ou invite jusqu’à sept amis sur le nouveau plateau octogonal.</p></div>
             <div className="rounded-2xl bg-[#d2f178]/10 p-4 text-[#d2f178]"><Dices size={38}/></div>
           </div>
           {!userId?(
@@ -320,7 +346,7 @@ export default function LudoOnline() {
             </div>
           ):!room?(
             <div className="mt-8 grid gap-5 lg:grid-cols-2">
-              <div className="rounded-2xl border border-white/10 bg-black/15 p-6"><span className="text-3xl">🏠</span><h2 className="mt-3 text-xl font-black">Créer une salle privée</h2><p className="mt-2 text-sm leading-6 text-white/55">Tu seras l’hôte. Invite jusqu’à trois amis avec un code unique.</p><button className="ludo-btn mt-6 w-full" disabled={busy} onClick={createRoom}>{busy?<LoaderCircle className="animate-spin"/>:<DoorOpen/>}Créer ma salle</button></div>
+              <div className="rounded-2xl border border-white/10 bg-black/15 p-6"><span className="text-3xl">🏠</span><h2 className="mt-3 text-xl font-black">Créer une salle privée</h2><p className="mt-2 text-sm leading-6 text-white/55">Choisis le plateau classique à 4 ou le nouveau plateau octogonal de 5 à 8 joueurs.</p><label className="mt-4 block text-xs font-bold text-white/60">Capacité de la salle</label><select className="ludo-input mt-2" value={roomSize} onChange={e=>setRoomSize(Number(e.target.value))}><option value={4}>Classique · 2 à 4 joueurs</option><option value={5}>Octogonal · 5 joueurs</option><option value={6}>Octogonal · 6 joueurs</option><option value={7}>Octogonal · 7 joueurs</option><option value={8}>Octogonal · 8 joueurs</option></select><button className="ludo-btn mt-4 w-full" disabled={busy} onClick={createRoom}>{busy?<LoaderCircle className="animate-spin"/>:<DoorOpen/>}Créer ma salle</button></div>
               <div className="rounded-2xl border border-white/10 bg-black/15 p-6"><span className="text-3xl">🤝</span><h2 className="mt-3 text-xl font-black">Rejoindre des amis</h2><p className="mt-2 text-sm leading-6 text-white/55">Entre le code que l’hôte t’a envoyé.</p><input className="ludo-input mt-5 text-center text-xl font-black uppercase tracking-[.35em]" placeholder="CODE" maxLength={10} value={codeInput} onChange={e=>setCodeInput(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g,""))}/><button className="ludo-btn mt-3 w-full" disabled={busy||codeInput.length<4} onClick={joinRoom}>Rejoindre la salle</button></div>
             </div>
           ):(
@@ -341,11 +367,11 @@ export default function LudoOnline() {
                 </div>
                 <div className="rounded-2xl border border-white/10 bg-black/15 p-5">
                   <div className="flex items-center justify-between"><h3 className="font-black">Joueurs · {players.length}/{room.maxPlayers}</h3><span className="text-[10px] font-black uppercase tracking-widest text-[#d2f178]">{room.status==="waiting"?"En attente":room.status==="playing"?"En direct":"Terminée"}</span></div>
-                  <div className="mt-4 space-y-3">{players.map((p,i)=><div key={p.userId} className="flex items-center justify-between gap-3 rounded-xl bg-white/[.04] p-3"><div className="flex min-w-0 items-center gap-3"><span className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-sm font-black text-[#102018]" style={{background:COLORS[i]}}>{p.username.slice(0,1).toUpperCase()}</span><div className="min-w-0"><p className="truncate text-sm font-bold">{p.username}{p.userId===userId?" (toi)":""}</p><p className="text-[10px] text-white/45">{i===0?"Rouge":COLOR_NAMES[i]} {p.userId===room.hostId?"· Hôte":""}</p></div></div><span className={p.ready?"text-[#d2f178]":"text-white/35"}>{p.ready?<Check size={19}/>: "Pas prêt"}</span></div>)}</div>
+                  <div className="mt-4 space-y-3">{players.map((p,i)=><div key={p.userId} className="flex items-center justify-between gap-3 rounded-xl bg-white/[.04] p-3"><div className="flex min-w-0 items-center gap-3"><span className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-sm font-black text-[#102018]" style={{background:COLORS[i]}}>{p.username.slice(0,1).toUpperCase()}</span><div className="min-w-0"><p className="truncate text-sm font-bold">{p.username}{p.userId===userId?" (toi)":""}</p><p className="text-[10px] text-white/45">{COLOR_NAMES[i]} {p.userId===room.hostId?"· Hôte":""}</p></div></div><span className={p.ready?"text-[#d2f178]":"text-white/35"}>{p.ready?<Check size={19}/>: "Pas prêt"}</span></div>)}</div>
                   {room.status==="waiting"&&<><button className="ludo-secondary mt-4 w-full" disabled={busy} onClick={toggleReady}>{myPlayer?.ready?"Annuler ma préparation":"Je suis prêt"}</button>{isHost&&<button className="ludo-btn mt-3 w-full" disabled={busy||!readyToStart} onClick={startGame}><Crown size={17}/>Démarrer la partie</button>}<p className="mt-3 text-center text-[11px] text-white/45">{players.length<2?"Il faut au moins 2 joueurs.":!readyToStart?"Tous les joueurs doivent être prêts.":"Tout le monde est prêt !"}</p></>}
                 </div>
                 <div className="rounded-2xl border border-white/10 bg-black/15 p-5"><div className="flex items-center justify-between"><h3 className="font-black">💬 Le coin des joueurs</h3><span className="text-[10px] text-white/40">Messages en direct</span></div><div className="mt-3 flex max-h-56 flex-col gap-2 overflow-y-auto rounded-xl bg-black/20 p-3" aria-live="polite">{chatMessages.length?chatMessages.map(m=><div key={m.id} className={"max-w-[90%] rounded-xl px-3 py-2 text-xs "+(m.userId===userId?"self-end bg-[#d2f178]/15 text-[#e8f7c5]":"self-start bg-white/[.07] text-white/80")}><p className="mb-1 text-[10px] font-black text-[#d2f178]">{m.userId===userId?"Toi":m.username}</p>{m.body}</div>):<p className="py-5 text-center text-xs text-white/35">Lance les premières petites piques 😄</p>}</div><div className="mt-3 flex gap-2"><input className="ludo-input min-w-0 flex-1 text-sm" maxLength={120} placeholder="Écris un petit message…" value={chatDraft} onChange={e=>setChatDraft(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"){e.preventDefault();void sendChat();}}}/><button className="ludo-btn px-4" disabled={chatBusy||!chatDraft.trim()} onClick={()=>void sendChat()}>Envoyer</button></div><div className="mt-3 flex flex-wrap gap-2">{["Ça chauffe ! 🔥","Tu dors ou quoi ? 😂","Ekié ! 😅","On est ensemble 🤝"].map(msg=><button key={msg} className="ludo-secondary px-2.5 py-2 text-[10px]" disabled={chatBusy} onClick={()=>void sendChat(msg)}>{msg}</button>)}</div></div>
-                <div className="rounded-2xl border border-white/10 bg-black/15 p-5"><h3 className="font-black">Règles de base</h3><ul className="mt-3 space-y-2 text-xs leading-5 text-white/55"><li>• 4 pions par joueur, 2 à 4 joueurs.</li><li>• Un 6 permet de sortir un pion et donne un tour bonus.</li><li>• Capture un pion adverse pour rejouer.</li><li>• Les cases sûres protègent tes pions ; deux pions forment un barrage.</li><li>• Il faut arriver à la maison avec le chiffre exact.</li><li>• Trois 6 consécutifs font perdre le tour.</li></ul></div>
+                <div className="rounded-2xl border border-white/10 bg-black/15 p-5"><h3 className="font-black">Règles de base</h3><ul className="mt-3 space-y-2 text-xs leading-5 text-white/55"><li>• 4 pions par joueur ; plateau classique 2 à 4 joueurs ou octogonal 5 à 8 joueurs.</li><li>• Un 6 permet de sortir un pion et donne un tour bonus.</li><li>• Capture un pion adverse pour rejouer.</li><li>• Les cases sûres protègent tes pions ; deux pions forment un barrage.</li><li>• Il faut arriver à la maison avec le chiffre exact.</li><li>• Trois 6 consécutifs font perdre le tour.</li></ul></div>
                 <button className="ludo-secondary w-full" onClick={()=>{setSnapshot(null);setRoomCode("");setLastRoll(null);setNotice("Tu as quitté l’affichage de cette salle.");}}><RefreshCw size={15} className="mr-2 inline"/>Masquer la salle</button>
               </aside>
             </div>
