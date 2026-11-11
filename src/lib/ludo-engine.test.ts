@@ -30,7 +30,7 @@ describe("ludo engine", () => {
   it("captures an opponent on a non-safe square", () => {
     const state = {
       ...createLudoGame(2),
-      tokens: [[4, -1, -1, -1], [0, -1, -1, -1]],
+      tokens: [[4, -1, -1, -1], [44, -1, -1, -1]],
     };
     const moved = moveLudoToken(rollLudo(state, 1), 0);
     expect(moved.tokens[0][0]).toBe(5);
@@ -41,7 +41,7 @@ describe("ludo engine", () => {
   it("does not capture on a safe square", () => {
     const state = {
       ...createLudoGame(2),
-      tokens: [[7, -1, -1, -1], [0, -1, -1, -1]],
+      tokens: [[7, -1, -1, -1], [47, -1, -1, -1]],
     };
     const moved = moveLudoToken(rollLudo(state, 1), 0);
     expect(moved.tokens[1][0]).toBe(0);
