@@ -194,6 +194,11 @@ describe("Check !, pioche et fin de partie", () => {
     expect(() => drawCard(won, "p2")).toThrow(RuleError);
   });
 
+  it("interdit de piocher volontairement lorsqu'une carte est jouable", () => {
+    const state = fixture([[card("hearts", "9"), card("spades", "K")]], card("hearts", "5"));
+    expect(() => drawCard(state, "p1", () => 0)).toThrow("Tu as une carte jouable");
+  });
+
   it("pioche une carte jouable et permet de la jouer immédiatement", () => {
     const state = fixture([[card("spades", "K")], [card("diamonds", "3")]], card("hearts", "5"), {
       drawPile: [card("clubs", "5"), card("spades", "4")],
