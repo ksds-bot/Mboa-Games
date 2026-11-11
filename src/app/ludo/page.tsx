@@ -33,8 +33,7 @@ export default function LudoPage() {
   const [game, setGame] = useState<LudoState | null>(null);
   const [rolling, setRolling] = useState(false);
   const [message, setMessage] = useState("Configure les joueurs et lance la partie.");
-  const [lastRollId, setLastRollId] = useState("");
-  const [history, setHistory] = useState<string[]>([]);
+    const [history, setHistory] = useState<string[]>([]);
 
   const legalMoves = useMemo(() => game?.lastRoll ? getLegalTokenMoves(game, game.lastRoll) : [], [game]);
   const activeName = game ? (names[game.currentPlayer] || LABELS[game.currentPlayer]) : "";
@@ -44,7 +43,6 @@ export default function LudoPage() {
     try {
       setGame(createLudoGame(playerCount));
       setHistory([]);
-      setLastRollId("");
       setMessage("La partie commence ! Le joueur rouge ouvre le jeu.");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Configuration invalide.");
@@ -62,7 +60,6 @@ export default function LudoPage() {
         throw new Error(payload?.error || "Le lancer du dé a échoué.");
       }
       await new Promise((resolve) => window.setTimeout(resolve, 750));
-      setLastRollId(payload.rollId);
       const next = rollLudo(game, payload.roll);
       setGame(next);
       setHistory((items) => [`${names[game.currentPlayer]} : ${payload.roll}`, ...items].slice(0, 12));
@@ -88,7 +85,7 @@ export default function LudoPage() {
       const previous = game;
       const moved = moveLudoToken(game, tokenIndex);
       setGame(moved);
-      const captured = previous.tokens.some((row, index) => index !== previous.currentPlayer && row.some((p) => p >= 0 && p <= 50 && globalSquare(index, p) === globalSquare(previous.currentPlayer, previous.tokens[previous.currentPlayer][tokenIndex] === -1 ? 0 : previous.tokens[previous.currentPlayer][tokenIndex] + (previous.lastRoll ?? 0))));
+      const captured = previous.tokens.some((row, index) => index !== previous.currentPlayer && moved.tokens[index].filter((p) => p === -1).length > row.filter((p) => p === -1).length);
       if (moved.winner !== null) {
         setMessage(`🏆 ${names[moved.winner]} remporte la partie ! Tous ses pions sont à la maison.`);
       } else if (captured) {
