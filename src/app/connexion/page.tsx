@@ -12,14 +12,7 @@ export default async function ConnexionPage({ searchParams }: ConnexionPageProps
   const adminLogin = params.next === "/admin";
   const redirectTo = adminLogin ? "/admin" : "/profil";
   const { data: { user } } = await supabase.auth.getUser();
-
-  if (user && adminLogin) {
-    const { error } = await supabase.rpc("admin_console_snapshot");
-    if (!error) redirect("/admin");
-  } else if (user) {
-    redirect("/profil");
-  }
-
+  if (user && !adminLogin) redirect("/profil");
   const initialMode = params.mode === "login" || adminLogin ? "login" : "register";
   return <><SiteHeader /><main className="auth-page"><ConnexionForm initialMode={initialMode} redirectTo={redirectTo} /></main></>;
 }
