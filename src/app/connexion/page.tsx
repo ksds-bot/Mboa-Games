@@ -5,14 +5,12 @@ import { createClient } from "@/lib/supabase/server";
 
 export const metadata = { title: "Connexion joueur" };
 
-export default async function ConnexionPage() {
-  const supabase = await createClient();
+type ConnexionPageProps = { searchParams: Promise<{ mode?: string }> };
+
+export default async function ConnexionPage({ searchParams }: ConnexionPageProps) {
+  const [supabase, params] = await Promise.all([createClient(), searchParams]);
   const { data: { user } } = await supabase.auth.getUser();
   if (user) redirect("/profil");
-  return (
-    <>
-      <SiteHeader />
-      <main className="auth-page"><ConnexionForm /></main>
-    </>
-  );
+  const initialMode = params.mode === "login" ? "login" : "register";
+  return <><SiteHeader /><main className="auth-page"><ConnexionForm initialMode={initialMode} /></main></>;
 }
