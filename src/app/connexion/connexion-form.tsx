@@ -14,12 +14,19 @@ export default function ConnexionForm({ initialMode = "register", redirectTo = "
   const [username, setUsername] = useState("");
   const [pin, setPin] = useState("");
   const [pinConfirmation, setPinConfirmation] = useState("");
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState(false);\n  const [authReady, setAuthReady] = useState(redirectTo !== "/admin");
   const [error, setError] = useState("");
 
   useEffect(() => {
     if (redirectTo !== "/admin") return;
-    void createClient().auth.signOut();
+    let active = true;
+    void (async () => {
+      const { error: signOutError } = await createClient().auth.signOut();
+      if (!active) return;
+      if (signOutError) setError("Impossible de fermer la session précédente. Recharge cette page avant de continuer.");
+      else setAuthReady(true);
+    })();
+    return () => { active = false; };
   }, [redirectTo]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -149,8 +156,8 @@ export default function ConnexionForm({ initialMode = "register", redirectTo = "
           </>
         )}
 
-        <button className="auth-submit" type="submit" disabled={busy || username.trim().length < 3 || pin.length !== 6 || (mode === "register" && pinConfirmation.length !== 6)}>
-          {busy ? "Patiente..." : mode === "register" ? "Créer mon compte" : "Me connecter"}
+        <button className="auth-submit" type="submit" disabled={!authReady || busy || username.trim().length < 3 || pin.length !== 6 || (mode === "register" && pinConfirmation.length !== 6)}>
+          {!authReady ? "Préparation de la connexion sécurisée..." : busy ? "Patiente..." : mode === "register" ? "Créer mon compte" : "Me connecter"}
           <span aria-hidden="true">→</span>
         </button>
       </form>
