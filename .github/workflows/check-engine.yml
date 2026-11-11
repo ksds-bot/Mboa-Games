@@ -8,6 +8,8 @@ on:
       - "src/lib/check-engine.test.ts"
       - "src/lib/des-engine.ts"
       - "src/lib/des-engine.test.ts"
+      - "src/lib/ludo-engine.ts"
+      - "src/lib/ludo-engine.test.ts"
       - "package.json"
       - ".github/workflows/check-engine.yml"
   pull_request:
