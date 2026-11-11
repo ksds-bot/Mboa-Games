@@ -167,6 +167,7 @@ export default function LudoOnline() {
 
   useEffect(()=>{
     if(!snapshot?.game?.turnDeadlineAt || snapshot.game.winner!==null || snapshot.room.status!=="playing")return;
+    const deadline=snapshot.game.turnDeadlineAt;
     const tick=()=>{
       const now=Date.now();
       setClockNow(now);
@@ -175,7 +176,8 @@ export default function LudoOnline() {
         supabase.rpc("ludo_expire_turn",{p_code:roomCode}).then(({error:rpcError})=>{
           if(rpcError) setError(rpcError.message);
           else void refreshRoom(roomCode).catch((e)=>setError(e.message));
-        }).finally(()=>{expireInFlight.current=false;});
+          expireInFlight.current=false;
+        },()=>{expireInFlight.current=false;});
       }
     };
     tick();
