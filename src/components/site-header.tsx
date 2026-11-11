@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-type SiteHeaderProps = { active?: "home" | "cards" | "dice" | "profile" };
+type SiteHeaderProps = { active?: "home" | "cards" | "dice" | "ludo" | "profile" };
 
 export default function SiteHeader({ active }: SiteHeaderProps) {
   return (
@@ -14,6 +14,7 @@ export default function SiteHeader({ active }: SiteHeaderProps) {
           <Link href="/" className={active === "home" ? "is-active" : ""}>Accueil</Link>
           <Link href="/cartes" className={active === "cards" ? "is-active" : ""}>CHECK!</Link>
           <Link href="/des" className={active === "dice" ? "is-active" : ""}>Le 2 Dès</Link>
+          <Link href="/ludo" className={active === "ludo" ? "is-active" : ""}>Ludo</Link>
           <Link href="/profil" className={active === "profile" ? "is-active" : ""}>Mon compte</Link>
         </nav>
         <span className="game-site-tag">🇨🇲 <span>100% ESPRIT 237</span></span>
