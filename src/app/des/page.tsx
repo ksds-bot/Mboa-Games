@@ -13,14 +13,6 @@ const PIPS: Record<number, number[]> = {
   5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8],
 };
 
-function randomDieFace() {
-  // Rejection sampling avoids modulo bias: every face has exactly the same chance.
-  const limit = Math.floor(0x100000000 / 6) * 6;
-  const value = new Uint32Array(1);
-  do { window.crypto.getRandomValues(value); } while (value[0] >= limit);
-  return (value[0] % 6) + 1;
-}
-
 function DiceFace({ value }: { value: number }) {
   return (
     <div className="cube-face">
@@ -100,18 +92,37 @@ export default function DeuxDesGame() {
     }
   }
 
-  function rollForPlayer(playerIndex: number) {
+  async function rollForPlayer(playerIndex: number) {
     if (rollingPlayer !== null || winner !== null || complete || !activePlayers.includes(playerIndex) || turnPlayer !== playerIndex) return;
     setRollingPlayer(playerIndex);
     setMessage(`🎲 ${names[playerIndex]} lance les dés…`);
 
-    // The throw is generated locally at the instant the player launches.
-    const dice = Array.from({ length: diceCount }, randomDieFace);
-    const total = dice.reduce((sum, face) => sum + face, 0);
-    const isMillion = dice.every((face) => face === millionFace);
-    const rollId = window.crypto.randomUUID();
+    try {
+      // Le serveur génère le résultat avec le générateur cryptographique de Node.js.
+      const [response] = await Promise.all([
+        fetch("/api/des/roll", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ diceCount }),
+          cache: "no-store",
+        }),
+        new Promise((resolve) => window.setTimeout(resolve, 1050)),
+      ]);
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload?.error || "Le lancer a échoué.");
+      if (
+        !Array.isArray(payload?.dice) ||
+        payload.dice.length !== diceCount ||
+        payload.dice.some((face: unknown) => !Number.isInteger(face) || (face as number) < 1 || (face as number) > 6) ||
+        typeof payload?.rollId !== "string"
+      ) {
+        throw new Error("Le serveur a renvoyé un résultat de dés invalide.");
+      }
 
-    window.setTimeout(() => {
+      const dice: number[] = payload.dice;
+      const total = dice.reduce((sum, face) => sum + face, 0);
+      const isMillion = dice.every((face) => face === millionFace);
+      const rollId: string = payload.rollId;
       const item: DiceThrow = { playerIndex, dice, total, isMillion };
       setThrows((current) => [...current, item]);
       setHistory((current) => [...current, {
@@ -122,7 +133,10 @@ export default function DeuxDesGame() {
       setMessage(isMillion
         ? `💥 MILLION ! ${names[playerIndex]} fait ${dice.join(" - ")} !`
         : `${names[playerIndex]} obtient ${total} points.`);
-    }, 1050);
+    } catch (error) {
+      setRollingPlayer(null);
+      setMessage(error instanceof Error ? error.message : "Impossible de lancer les dés. Réessaie.");
+    }
   }
 
   function resolveRound() {
@@ -227,7 +241,16 @@ export default function DeuxDesGame() {
               <aside className="rounded-2xl border border-[#c8f169]/15 bg-[#c8f169]/5 p-5">
                 <h3 className="font-black">Règle du Million</h3><p className="mt-2 text-sm leading-6 text-white/65">Si un joueur obtient le chiffre choisi sur chacun des dés, il fait Million et remporte directement la manche. Si plusieurs joueurs font Million, ils relancent entre eux.</p>
                 <div className="mt-6 flex items-center gap-3"><span className="text-4xl">💥</span><div><p className="font-black text-[#d7f89b]">{diceCount} × {millionFace}</p><p className="text-xs text-white/50">Million de cette table</p></div></div>
-                <div className="mt-6 rounded-xl border border-white/10 bg-black/15 p-3 text-xs leading-5 text-white/50">Mode test gratuit. Les mises, paiements et retraits en argent réel ne sont pas activés.</div>
+                <div className="mt-6 rounded-xl border border-white/10 bg-black/15 p-3 text-xs leading-5 text-white/50">Mode test gratuit : aucune mise d’argent réel, aucun paiement ni retrait ne sont activés.</div>
+                <div className="mt-5 border-t border-white/10 pt-5">
+                  <h3 className="font-black">Comment gagner ?</h3>
+                  <ul className="mt-2 space-y-2 text-sm leading-6 text-white/65">
+                    <li>• Chaque joueur lance à son tour le nombre de dés choisi.</li>
+                    <li>• Sans Million, le total le plus élevé remporte la manche.</li>
+                    <li>• En cas d’égalité, seuls les joueurs ex æquo relancent jusqu’à un gagnant unique.</li>
+                    <li>• Un Million (le même chiffre sur tous les dés) remporte la manche. Plusieurs Millions se départagent entre eux.</li>
+                  </ul>
+                </div>
               </aside>
             </div>
           ) : (
