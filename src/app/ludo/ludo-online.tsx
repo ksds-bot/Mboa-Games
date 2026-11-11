@@ -75,7 +75,7 @@ function LudoBoard({ game, players, myTurn, onMove }: { game: Game; players: Pla
         {game.tokens.map((row,p)=>row.map((progress,t)=>{const [x,y]=tokenPoint(p,progress,t);const movable=myTurn&&p===game.currentPlayer&&moves.includes(t);return <g key={p+"-"+t} onClick={()=>movable&&onMove(t)} className={movable?"cursor-pointer":""} role={movable?"button":undefined} tabIndex={movable?0:undefined} aria-label={`Pion ${t+1}, ${COLOR_NAMES[p]}`} onKeyDown={(e)=>{if(movable&&(e.key==="Enter"||e.key===" "))onMove(t);}}>
           {movable&&<circle cx={x} cy={y} r="18" fill="none" stroke="#19251d" strokeWidth="3" strokeDasharray="4 4"/>}
           <circle cx={x} cy={y+3} r="13" fill="#000" opacity=".22"/>
-          <circle cx={x} cy={y} r="12" fill={COLORS[p]} stroke="#fff" strokeWidth="3"/>
+          <circle className="ludo-pawn" cx={x} cy={y} r="12" fill={COLORS[p]} stroke="#fff" strokeWidth="3"/>
           <circle cx={x-3} cy={y-3} r="3" fill="#fff" opacity=".75"/>
         </g>;}))}
       </svg>
@@ -215,7 +215,7 @@ export default function LudoOnline() {
         .ludo-btn:disabled{opacity:.42;cursor:not-allowed}
         .ludo-secondary{border:1px solid #ffffff25;background:#ffffff09;border-radius:14px;padding:12px 15px;font-weight:800}
         .ludo-input{width:100%;border:1px solid #ffffff24;background:#0d1712;border-radius:14px;padding:14px;color:white;outline:none}
-        .ludo-input:focus{border-color:#d2f178;box-shadow:0 0 0 3px #d2f17822}
+        .ludo-input:focus{border-color:#d2f178;box-shadow:0 0 0 3px #d2f17822}\n        .ludo-pawn{transition:cx .28s ease,cy .28s ease}\n        .ludo-die{transition:transform .18s ease}
         @media(prefers-reduced-motion:no-preference){.ludo-die{animation:die-in .45s cubic-bezier(.2,.8,.2,1)}}
         @keyframes die-in{0%{transform:rotate(-25deg) scale(.5);opacity:.2}100%{transform:rotate(0) scale(1);opacity:1}}
       `}</style>
@@ -243,7 +243,7 @@ export default function LudoOnline() {
               <div className="space-y-4">
                 {game?<LudoBoard game={game} players={players} myTurn={myTurn} onMove={move}/>:<div className="grid aspect-square place-items-center rounded-3xl border border-white/10 bg-[#0c1712] p-8 text-center"><div><Users size={42} className="mx-auto text-[#d2f178]"/><h2 className="mt-4 text-2xl font-black">Salle d’attente</h2><p className="mt-2 text-sm text-white/55">Le plateau apparaîtra au lancement de la partie.</p></div></div>}
                 {game&&<div className="rounded-2xl border border-white/10 bg-black/15 p-5">
-                  <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-[10px] font-black uppercase tracking-[.2em] text-[#d2f178]">Tour en cours</p><h2 className="mt-1 text-2xl font-black">{activeName}</h2><p className="mt-1 text-xs text-white/50">{myTurn?"C’est ton tour !": "En attente du coup de "+activeName}</p></div><div className="ludo-die grid h-[68px] w-[68px] place-items-center rounded-2xl border-2 border-[#d2f178]/60 bg-[#f8f6ed] text-4xl font-black text-[#172219]">{lastRoll??game.lastRoll??"🎲"}</div></div>
+                  <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-[10px] font-black uppercase tracking-[.2em] text-[#d2f178]">Tour en cours</p><h2 className="mt-1 text-2xl font-black">{activeName}</h2><p className="mt-1 text-xs text-white/50">{myTurn?"C’est ton tour !": "En attente du coup de "+activeName}</p></div><div key={lastRoll??game.lastRoll??"idle"} className="ludo-die grid h-[68px] w-[68px] place-items-center rounded-2xl border-2 border-[#d2f178]/60 bg-[#f8f6ed] text-4xl font-black text-[#172219]">{lastRoll??game.lastRoll??"🎲"}</div></div>
                   <div className="mt-4 flex flex-wrap gap-2"><button className="ludo-btn flex-1" disabled={!myTurn||busy||game.lastRoll!==null||game.winner!==null} onClick={roll}><Dices size={18}/>Lancer le dé</button><span className="flex items-center rounded-xl bg-white/5 px-4 text-xs font-bold text-white/60">{moves.length?moves.length+" pion(s) à déplacer":myTurn&&game.lastRoll!==null?"Aucun coup possible":"Tour synchronisé"}</span></div>
                   {game.winner!==null&&<p className="mt-4 rounded-xl bg-[#d2f178]/10 p-4 text-center text-lg font-black text-[#d2f178]">🏆 {players.find(p=>p.userId===game.playerOrder[game.winner!])?.username} remporte la partie !</p>}
                 </div>}
