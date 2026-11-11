@@ -89,7 +89,7 @@ function LudoBoard({ game, players, myTurn, onMove }: { game: Game; players: Pla
         <path d="M240 240 L360 240 L360 360 L240 360 Z" fill="#f8f5e9" stroke="#c9c4b7" strokeWidth="2"/>
         <path d="M240 240 L360 240 L300 300 Z" fill={COLORS[0]}/><path d="M360 240 L360 360 L300 300 Z" fill={COLORS[1]}/>
         <path d="M360 360 L240 360 L300 300 Z" fill={COLORS[2]}/><path d="M240 360 L240 240 L300 300 Z" fill={COLORS[3]}/>
-        {game.tokens.map((row,p)=>row.map((progress,t)=>{const [x,y]=tokenPoint(p,progress,t);const movable=myTurn&&p===game.currentPlayer&&moves.includes(t);return <g key={p+"-"+t} onClick={()=>movable&&onMove(t)} className={movable?"cursor-pointer":""} role={movable?"button":undefined} tabIndex={movable?0:undefined} aria-label={`Pion ${t+1}, ${COLOR_NAMES[p]}`} onKeyDown={(e)=>{if(movable&&(e.key==="Enter"||e.key===" "))onMove(t);}}>
+        {game.tokens.slice(0,game.playerOrder.length).map((row,p)=>row.map((progress,t)=>{const [x,y]=tokenPoint(p,progress,t);const movable=myTurn&&p===game.currentPlayer&&moves.includes(t);return <g key={p+"-"+t} onClick={()=>movable&&onMove(t)} className={movable?"cursor-pointer":""} role={movable?"button":undefined} tabIndex={movable?0:undefined} aria-label={`Pion ${t+1}, ${COLOR_NAMES[p]}`} onKeyDown={(e)=>{if(movable&&(e.key==="Enter"||e.key===" "))onMove(t);}}>
           {movable&&<circle cx={x} cy={y} r="18" fill="none" stroke="#19251d" strokeWidth="3" strokeDasharray="4 4"/>}
           <circle cx={x} cy={y+3} r="13" fill="#000" opacity=".22"/>
           <circle className="ludo-pawn" cx={x} cy={y} r="12" fill={COLORS[p]} stroke="#fff" strokeWidth="3"/>
