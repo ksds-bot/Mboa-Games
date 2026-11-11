@@ -9,9 +9,17 @@ type ConnexionPageProps = { searchParams: Promise<{ mode?: string; next?: string
 
 export default async function ConnexionPage({ searchParams }: ConnexionPageProps) {
   const [supabase, params] = await Promise.all([createClient(), searchParams]);
-  const redirectTo = params.next === "/admin" ? "/admin" : "/profil";
+  const adminLogin = params.next === "/admin";
+  const redirectTo = adminLogin ? "/admin" : "/profil";
   const { data: { user } } = await supabase.auth.getUser();
-  if (user) redirect(redirectTo);
-  const initialMode = params.mode === "login" ? "login" : "register";
+
+  if (user && adminLogin) {
+    const { error } = await supabase.rpc("admin_console_snapshot");
+    if (!error) redirect("/admin");
+  } else if (user) {
+    redirect("/profil");
+  }
+
+  const initialMode = params.mode === "login" || adminLogin ? "login" : "register";
   return <><SiteHeader /><main className="auth-page"><ConnexionForm initialMode={initialMode} redirectTo={redirectTo} /></main></>;
 }
