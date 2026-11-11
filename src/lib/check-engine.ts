@@ -299,6 +299,9 @@ export function drawCard(
   randomIndex: (max: number) => number = secureRandomIndex,
 ): GameState {
   const player = requireCurrentPlayer(state, playerId);
+  if (state.pendingDraw === 0 && player.hand.some((card) => canPlayCard(state, card))) {
+    throw new RuleError("Tu as une carte jouable : tu dois la poser avant de piocher.");
+  }
   const amount = state.pendingDraw > 0 ? state.pendingDraw : 1;
   const drawn = drawFromPile(state, amount, randomIndex);
   const updatedHand = [...player.hand, ...drawn.cards];
