@@ -103,7 +103,7 @@ function LudoBoard({ game, players, myTurn, onMove }: { game: Game; players: Pla
   const octagonal = isOctagonal(game);
   const [visualGame,setVisualGame] = useState(game);
   const previousGameRef = useRef(game);
-  const animationTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const animationTimerRef = useRef<number | null>(null);
   const animationInProgressRef = useRef(false);
   useEffect(() => {
     const previous = previousGameRef.current;
