@@ -150,7 +150,7 @@ export default function AdminConsole() {
       <div className="mx-auto max-w-7xl">
         <header className="mb-6 flex flex-wrap items-center justify-between gap-4">
           <div><p className="text-xs font-black tracking-[.25em] text-[#d2f178]">MBOA GAMES · CONTRÔLE CENTRAL</p><h1 className="mt-2 text-3xl font-black sm:text-4xl">Administration</h1><p className="mt-2 text-sm text-white/50">Gestion sécurisée des joueurs, soldes, jeux et paramètres.</p></div>
-          <Link href="/profil" className="rounded-xl border border-white/15 px-4 py-3 text-sm font-bold text-white/75">← Mon profil</Link>
+          <div className="flex flex-wrap gap-2"><Link href="/" className="rounded-xl border border-white/15 px-4 py-3 text-sm font-bold text-white/75">⌂ Accueil</Link><Link href="/profil" className="rounded-xl border border-white/15 px-4 py-3 text-sm font-bold text-white/75">← Mon profil</Link></div>
         </header>
 
         <div className="mb-5 flex flex-wrap gap-2">
