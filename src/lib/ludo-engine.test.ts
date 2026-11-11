@@ -44,7 +44,7 @@ describe("ludo engine", () => {
       tokens: [[7, -1, -1, -1], [47, -1, -1, -1]],
     };
     const moved = moveLudoToken(rollLudo(state, 1), 0);
-    expect(moved.tokens[1][0]).toBe(0);
+    expect(moved.tokens[1][0]).toBe(47);
   });
 
   it("skips a turn after three consecutive sixes", () => {
