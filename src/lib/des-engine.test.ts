@@ -54,6 +54,33 @@ describe("Le 2 Dès", () => {
     expect(evaluateThrows(throws, 3, 2, 1).winnerIndex).toBe(2);
   });
 
+  it("rejette les joueurs dupliqués et les index hors limites", () => {
+    const duplicate: DiceThrow[] = [
+      { playerIndex: 0, dice: [2, 3], total: 5, isMillion: false },
+      { playerIndex: 0, dice: [4, 5], total: 9, isMillion: false },
+    ];
+    expect(() => evaluateThrows(duplicate, 2, 2, 1)).toThrow("Joueur invalide");
+    expect(() => evaluateThrows([
+      { playerIndex: 2, dice: [2, 3], total: 5, isMillion: false },
+    ], 2, 2, 1)).toThrow("Joueur invalide");
+  });
+
+  it("refuse les configurations de manche invalides", () => {
+    const valid: DiceThrow[] = [{ playerIndex: 0, dice: [2, 3], total: 5, isMillion: false }];
+    expect(() => evaluateThrows(valid, 1, 2, 1)).toThrow("Nombre de joueurs invalide");
+    expect(() => evaluateThrows(valid, 2, 1, 1)).toThrow("Nombre de dés invalide");
+    expect(() => evaluateThrows(valid, 2, 2, 7)).toThrow("Chiffre du Million invalide");
+  });
+
+  it("rejette plus de lancers que de joueurs", () => {
+    const tooMany: DiceThrow[] = [
+      { playerIndex: 0, dice: [2, 3], total: 5, isMillion: false },
+      { playerIndex: 1, dice: [4, 5], total: 9, isMillion: false },
+      { playerIndex: 2, dice: [1, 2], total: 3, isMillion: false },
+    ];
+    expect(() => evaluateThrows(tooMany, 2, 2, 1)).toThrow("Trop de lancers");
+  });
+
   it("rejette les totaux ou les annonces de Million falsifiés", () => {
     expect(() => evaluateThrows([
       { playerIndex: 0, dice: [6, 6], total: 10, isMillion: false },
