@@ -16,6 +16,7 @@ export default function SiteHeader({ active }: SiteHeaderProps) {
           <Link href="/des" className={active === "dice" ? "is-active" : ""}>Le 2 Dès</Link>
           <Link href="/ludo" className={active === "ludo" ? "is-active" : ""}>Ludo</Link>
           <Link href="/profil" className={active === "profile" ? "is-active" : ""}>Mon compte</Link>
+          <Link href="/connexion?mode=login&next=%2Fadmin" className="admin-nav-link">Espace administrateur</Link>
         </nav>
         <span className="game-site-tag">🇨🇲 <span>100% ESPRIT 237</span></span>
       </div>
