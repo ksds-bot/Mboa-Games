@@ -46,11 +46,28 @@ function tokenPoint(player: number, progress: number, token: number): [number, n
   const offsets: [number,number][] = [[-5,-5],[5,-5],[-5,5],[5,5]];
   return [point[0] + offsets[token][0], point[1] + offsets[token][1]];
 }
+function canMove(game: Game, player: number, token: number, roll: number): boolean {
+  const previous=game.tokens[player][token];
+  if(previous===57 || (previous===-1 && roll!==6))return false;
+  const next=previous===-1?0:previous+roll;
+  if(previous>=0&&next>57)return false;
+  for(let step=previous===-1?0:previous+1;step<=next&&step<=50;step++){
+    const square=(player*13+step)%52;
+    for(let owner=0;owner<game.playerOrder.length;owner++){
+      let count=0;
+      for(let other=0;other<4;other++){
+        if(owner===player&&other===token)continue;
+        const progress=game.tokens[owner][other];
+        if(progress>=0&&progress<=50&&(owner*13+progress)%52===square)count++;
+      }
+      if(count>=2)return false;
+    }
+  }
+  return true;
+}
 function legalMoves(game: Game): number[] {
   if (game.lastRoll === null) return [];
-  return game.tokens[game.currentPlayer].flatMap((p, i) =>
-    p === 57 ? [] : p === -1 ? (game.lastRoll === 6 ? [i] : []) : p + game.lastRoll! <= 57 ? [i] : [],
-  );
+  return game.tokens[game.currentPlayer].flatMap((_,i)=>canMove(game,game.currentPlayer,i,game.lastRoll!)?[i]:[]);
 }
 
 function LudoBoard({ game, players, myTurn, onMove }: { game: Game; players: Player[]; myTurn: boolean; onMove: (index: number) => void }) {
@@ -259,7 +276,7 @@ export default function LudoOnline() {
                   <div className="mt-4 space-y-3">{players.map((p,i)=><div key={p.userId} className="flex items-center justify-between gap-3 rounded-xl bg-white/[.04] p-3"><div className="flex min-w-0 items-center gap-3"><span className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-sm font-black text-[#102018]" style={{background:COLORS[i]}}>{p.username.slice(0,1).toUpperCase()}</span><div className="min-w-0"><p className="truncate text-sm font-bold">{p.username}{p.userId===userId?" (toi)":""}</p><p className="text-[10px] text-white/45">{i===0?"Rouge":COLOR_NAMES[i]} {p.userId===room.hostId?"· Hôte":""}</p></div></div><span className={p.ready?"text-[#d2f178]":"text-white/35"}>{p.ready?<Check size={19}/>: "Pas prêt"}</span></div>)}</div>
                   {room.status==="waiting"&&<><button className="ludo-secondary mt-4 w-full" disabled={busy} onClick={toggleReady}>{myPlayer?.ready?"Annuler ma préparation":"Je suis prêt"}</button>{isHost&&<button className="ludo-btn mt-3 w-full" disabled={busy||!readyToStart} onClick={startGame}><Crown size={17}/>Démarrer la partie</button>}<p className="mt-3 text-center text-[11px] text-white/45">{players.length<2?"Il faut au moins 2 joueurs.":!readyToStart?"Tous les joueurs doivent être prêts.":"Tout le monde est prêt !"}</p></>}
                 </div>
-                <div className="rounded-2xl border border-white/10 bg-black/15 p-5"><h3 className="font-black">Règles de base</h3><ul className="mt-3 space-y-2 text-xs leading-5 text-white/55"><li>• 4 pions par joueur, 2 à 4 joueurs.</li><li>• Un 6 permet de sortir un pion et donne un tour bonus.</li><li>• Capture un pion adverse pour rejouer.</li><li>• Les cases sûres protègent tes pions.</li><li>• Il faut arriver à la maison avec le chiffre exact.</li><li>• Trois 6 consécutifs font perdre le tour.</li></ul></div>
+                <div className="rounded-2xl border border-white/10 bg-black/15 p-5"><h3 className="font-black">Règles de base</h3><ul className="mt-3 space-y-2 text-xs leading-5 text-white/55"><li>• 4 pions par joueur, 2 à 4 joueurs.</li><li>• Un 6 permet de sortir un pion et donne un tour bonus.</li><li>• Capture un pion adverse pour rejouer.</li><li>• Les cases sûres protègent tes pions ; deux pions forment un barrage.</li><li>• Il faut arriver à la maison avec le chiffre exact.</li><li>• Trois 6 consécutifs font perdre le tour.</li></ul></div>
                 <button className="ludo-secondary w-full" onClick={()=>{setSnapshot(null);setRoomCode("");setLastRoll(null);setNotice("Tu as quitté l’affichage de cette salle.");}}><RefreshCw size={15} className="mr-2 inline"/>Masquer la salle</button>
               </aside>
             </div>
