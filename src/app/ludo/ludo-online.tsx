@@ -1,13 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { ArrowLeft, Check, Copy, Crown, Dices, DoorOpen, LoaderCircle, LogIn, RefreshCw, ShieldCheck, Users, Wifi } from "lucide-react";
 
 type Player = { userId: string; seat: number; ready: boolean; username: string };
 type Room = { id: string; code: string; status: "waiting" | "playing" | "finished"; maxPlayers: number; hostId: string };
-type Game = { playerOrder: string[]; tokens: number[][]; currentPlayer: number; lastRoll: number | null; consecutiveSixes: number; winner: number | null; turnNumber: number };
+type Game = { playerOrder: string[]; tokens: number[][]; currentPlayer: number; lastRoll: number | null; consecutiveSixes: number; winner: number | null; turnNumber: number; turnDeadlineAt?: string };\ntype ChatMessage = { id: number; body: string; userId: string; username: string; createdAt: string };
 type Snapshot = { room: Room; players: Player[]; game: Game | null };
 const COLORS = ["#ed5757", "#4bbd82", "#efc84a", "#5796e8"];
 const COLOR_NAMES = ["Rouge", "Vert", "Jaune", "Bleu"];
@@ -113,9 +113,9 @@ export default function LudoOnline() {
   const [error,setError] = useState("");
   const [notice,setNotice] = useState("Crée une salle privée ou rejoins tes amis avec un code.");
   const [lastRoll,setLastRoll] = useState<number|null>(null);
-  const [copied,setCopied] = useState(false);
+  const [copied,setCopied] = useState(false);\n  const [chatMessages,setChatMessages] = useState<ChatMessage[]>([]);\n  const [chatDraft,setChatDraft] = useState("");\n  const [chatBusy,setChatBusy] = useState(false);\n  const [clockNow,setClockNow] = useState(Date.now());\n  const expireInFlight = useRef(false);
 
-  const refreshRoom = useCallback(async (code:string) => {
+  const refreshChat = useCallback(async (code:string) => {\n    const {data,error:rpcError} = await supabase.rpc("ludo_chat_history",{p_code:code});\n    if(rpcError) throw rpcError;\n    setChatMessages((data ?? []) as ChatMessage[]);\n  },[supabase]);\n\n  const refreshRoom = useCallback(async (code:string) => {
     const {data,error:rpcError} = await supabase.rpc("ludo_room_snapshot",{p_code:code});
     if(rpcError) throw rpcError;
     const next = data as unknown as Snapshot;
@@ -146,7 +146,7 @@ export default function LudoOnline() {
       .on("postgres_changes",{event:"*",schema:"public",table:"game_sessions",filter:"room_id=eq."+snapshot.room.id},()=>{void refreshRoom(snapshot.room.code).catch((e)=>setError(e.message));})
       .subscribe();
     return ()=>{void supabase.removeChannel(channel);};
-  },[snapshot?.room.id,snapshot?.room.code,supabase,refreshRoom]);
+  },[snapshot?.room.id,snapshot?.room.code,supabase,refreshRoom,refreshChat]);\n\n  useEffect(()=>{\n    if(!snapshot?.room.code)return;\n    void refreshChat(snapshot.room.code).catch((e)=>setError(e.message));\n  },[snapshot?.room.code,refreshChat]);\n\n  useEffect(()=>{\n    if(!game?.turnDeadlineAt || game.winner!==null || room?.status!=="playing")return;\n    const tick=()=>{\n      const now=Date.now();\n      setClockNow(now);\n      if(now>=new Date(game.turnDeadlineAt!).getTime() && !expireInFlight.current){\n        expireInFlight.current=true;\n        supabase.rpc("ludo_expire_turn",{p_code:roomCode}).then(({error:rpcError})=>{\n          if(rpcError) setError(rpcError.message);\n          else void refreshRoom(roomCode).catch((e)=>setError(e.message));\n        }).finally(()=>{expireInFlight.current=false;});\n      }\n    };\n    tick();\n    const timer=window.setInterval(tick,250);\n    return ()=>window.clearInterval(timer);\n  },[game?.turnDeadlineAt,game?.winner,room?.status,roomCode,supabase,refreshRoom]);
 
   const run = async (task:()=>Promise<void>) => {
     setBusy(true);setError("");
@@ -201,7 +201,7 @@ export default function LudoOnline() {
       setNotice("La partie est lancée. Bonne chance !");
     });
   }
-  async function roll(){
+  async function sendChat(message = chatDraft){\n    const body=message.trim();\n    if(!body || chatBusy)return;\n    setChatBusy(true);\n    try{\n      const {error:rpcError}=await supabase.rpc("ludo_send_chat",{p_code:roomCode,p_body:body});\n      if(rpcError)throw rpcError;\n      setChatDraft("");\n      await refreshChat(roomCode);\n    }catch(e){setError(e instanceof Error?e.message:"Envoi du message impossible.");}\n    finally{setChatBusy(false);}\n  }\n  async function roll(){
     await run(async()=>{
       const {data,error:rpcError}=await supabase.rpc("ludo_roll",{p_code:roomCode});
       if(rpcError)throw rpcError;
@@ -236,7 +236,7 @@ export default function LudoOnline() {
   const myTurn=!!game&&game.winner===null&&game.playerOrder[game.currentPlayer]===userId;
   const moves=game?legalMoves(game):[];
   const readyToStart=players.length>=2&&players.every(p=>p.ready);
-  const activeName=game?players.find(p=>p.userId===game.playerOrder[game.currentPlayer])?.username??"Joueur":"";
+  const activeName=game?players.find(p=>p.userId===game.playerOrder[game.currentPlayer])?.username??"Joueur":"";\n  const secondsLeft=game?.turnDeadlineAt?Math.max(0,Math.ceil((new Date(game.turnDeadlineAt).getTime()-clockNow)/1000)):15;
 
   return (
     <main className="min-h-screen bg-[#101a16] px-3 pb-10 pt-5 text-white sm:px-6">
@@ -275,7 +275,7 @@ export default function LudoOnline() {
               <div className="space-y-4">
                 {game?<LudoBoard game={game} players={players} myTurn={myTurn} onMove={move}/>:<div className="grid aspect-square place-items-center rounded-3xl border border-white/10 bg-[#0c1712] p-8 text-center"><div><Users size={42} className="mx-auto text-[#d2f178]"/><h2 className="mt-4 text-2xl font-black">Salle d’attente</h2><p className="mt-2 text-sm text-white/55">Le plateau apparaîtra au lancement de la partie.</p></div></div>}
                 {game&&<div className="rounded-2xl border border-white/10 bg-black/15 p-5">
-                  <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-[10px] font-black uppercase tracking-[.2em] text-[#d2f178]">Tour en cours</p><h2 className="mt-1 text-2xl font-black">{activeName}</h2><p className="mt-1 text-xs text-white/50">{myTurn?"C’est ton tour !": "En attente du coup de "+activeName}</p></div><div key={lastRoll??game.lastRoll??"idle"} className="ludo-die grid h-[68px] w-[68px] place-items-center rounded-2xl border-2 border-[#d2f178]/60 bg-[#f8f6ed] text-4xl font-black text-[#172219]">{lastRoll??game.lastRoll??"🎲"}</div></div>
+                  <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-[10px] font-black uppercase tracking-[.2em] text-[#d2f178]">Tour en cours</p><h2 className="mt-1 text-2xl font-black">{activeName}</h2><p className="mt-1 text-xs text-white/50">{myTurn?"C’est ton tour !": "En attente du coup de "+activeName}</p></div><div className="flex items-center gap-3"><div className={"grid h-14 w-14 place-items-center rounded-2xl border text-xl font-black "+(secondsLeft<=5?"border-red-400/60 bg-red-400/15 text-red-200":"border-[#d2f178]/40 bg-[#d2f178]/10 text-[#d2f178]")}>{secondsLeft}s</div><div key={lastRoll??game.lastRoll??"idle"} className="ludo-die grid h-[68px] w-[68px] place-items-center rounded-2xl border-2 border-[#d2f178]/60 bg-[#f8f6ed] text-4xl font-black text-[#172219]">{lastRoll??game.lastRoll??"🎲"}</div></div></div><div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10"><div className={"h-full rounded-full transition-[width] duration-200 "+(secondsLeft<=5?"bg-red-400":"bg-[#d2f178]")} style={{width:(secondsLeft/15*100)+"%"}}/></div>
                   <div className="mt-4 flex flex-wrap gap-2"><button className="ludo-btn flex-1" disabled={!myTurn||busy||game.lastRoll!==null||game.winner!==null} onClick={roll}><Dices size={18}/>Lancer le dé</button><span className="flex items-center rounded-xl bg-white/5 px-4 text-xs font-bold text-white/60">{moves.length?moves.length+" pion(s) à déplacer":myTurn&&game.lastRoll!==null?"Aucun coup possible":"Tour synchronisé"}</span></div>
                   {game.winner!==null&&<p className="mt-4 rounded-xl bg-[#d2f178]/10 p-4 text-center text-lg font-black text-[#d2f178]">🏆 {players.find(p=>p.userId===game.playerOrder[game.winner!])?.username} remporte la partie !</p>}
                 </div>}
@@ -291,7 +291,7 @@ export default function LudoOnline() {
                   <div className="mt-4 space-y-3">{players.map((p,i)=><div key={p.userId} className="flex items-center justify-between gap-3 rounded-xl bg-white/[.04] p-3"><div className="flex min-w-0 items-center gap-3"><span className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-sm font-black text-[#102018]" style={{background:COLORS[i]}}>{p.username.slice(0,1).toUpperCase()}</span><div className="min-w-0"><p className="truncate text-sm font-bold">{p.username}{p.userId===userId?" (toi)":""}</p><p className="text-[10px] text-white/45">{i===0?"Rouge":COLOR_NAMES[i]} {p.userId===room.hostId?"· Hôte":""}</p></div></div><span className={p.ready?"text-[#d2f178]":"text-white/35"}>{p.ready?<Check size={19}/>: "Pas prêt"}</span></div>)}</div>
                   {room.status==="waiting"&&<><button className="ludo-secondary mt-4 w-full" disabled={busy} onClick={toggleReady}>{myPlayer?.ready?"Annuler ma préparation":"Je suis prêt"}</button>{isHost&&<button className="ludo-btn mt-3 w-full" disabled={busy||!readyToStart} onClick={startGame}><Crown size={17}/>Démarrer la partie</button>}<p className="mt-3 text-center text-[11px] text-white/45">{players.length<2?"Il faut au moins 2 joueurs.":!readyToStart?"Tous les joueurs doivent être prêts.":"Tout le monde est prêt !"}</p></>}
                 </div>
-                <div className="rounded-2xl border border-white/10 bg-black/15 p-5"><h3 className="font-black">Règles de base</h3><ul className="mt-3 space-y-2 text-xs leading-5 text-white/55"><li>• 4 pions par joueur, 2 à 4 joueurs.</li><li>• Un 6 permet de sortir un pion et donne un tour bonus.</li><li>• Capture un pion adverse pour rejouer.</li><li>• Les cases sûres protègent tes pions ; deux pions forment un barrage.</li><li>• Il faut arriver à la maison avec le chiffre exact.</li><li>• Trois 6 consécutifs font perdre le tour.</li></ul></div>
+                <div className="rounded-2xl border border-white/10 bg-black/15 p-5"><div className="flex items-center justify-between"><h3 className="font-black">💬 Le coin des joueurs</h3><span className="text-[10px] text-white/40">Messages en direct</span></div><div className="mt-3 flex max-h-56 flex-col gap-2 overflow-y-auto rounded-xl bg-black/20 p-3" aria-live="polite">{chatMessages.length?chatMessages.map(m=><div key={m.id} className={"max-w-[90%] rounded-xl px-3 py-2 text-xs "+(m.userId===userId?"self-end bg-[#d2f178]/15 text-[#e8f7c5]":"self-start bg-white/[.07] text-white/80")}><p className="mb-1 text-[10px] font-black text-[#d2f178]">{m.userId===userId?"Toi":m.username}</p>{m.body}</div>):<p className="py-5 text-center text-xs text-white/35">Lance les premières petites piques 😄</p>}</div><div className="mt-3 flex gap-2"><input className="ludo-input min-w-0 flex-1 text-sm" maxLength={120} placeholder="Écris un petit message…" value={chatDraft} onChange={e=>setChatDraft(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"){e.preventDefault();void sendChat();}}}/><button className="ludo-btn px-4" disabled={chatBusy||!chatDraft.trim()} onClick={()=>void sendChat()}>Envoyer</button></div><div className="mt-3 flex flex-wrap gap-2">{["Ça chauffe ! 🔥","Tu dors ou quoi ? 😂","Ekié ! 😅","On est ensemble 🤝"].map(msg=><button key={msg} className="ludo-secondary px-2.5 py-2 text-[10px]" disabled={chatBusy} onClick={()=>void sendChat(msg)}>{msg}</button>)}</div></div>\n                <div className="rounded-2xl border border-white/10 bg-black/15 p-5"><h3 className="font-black">Règles de base</h3><ul className="mt-3 space-y-2 text-xs leading-5 text-white/55"><li>• 4 pions par joueur, 2 à 4 joueurs.</li><li>• Un 6 permet de sortir un pion et donne un tour bonus.</li><li>• Capture un pion adverse pour rejouer.</li><li>• Les cases sûres protègent tes pions ; deux pions forment un barrage.</li><li>• Il faut arriver à la maison avec le chiffre exact.</li><li>• Trois 6 consécutifs font perdre le tour.</li></ul></div>
                 <button className="ludo-secondary w-full" onClick={()=>{setSnapshot(null);setRoomCode("");setLastRoll(null);setNotice("Tu as quitté l’affichage de cette salle.");}}><RefreshCw size={15} className="mr-2 inline"/>Masquer la salle</button>
               </aside>
             </div>
