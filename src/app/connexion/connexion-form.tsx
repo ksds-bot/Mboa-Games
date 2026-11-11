@@ -8,7 +8,7 @@ import Link from "next/link";
 
 type Mode = "register" | "login";
 
-export default function ConnexionForm({ initialMode = "register" }: { initialMode?: Mode }) {
+export default function ConnexionForm({ initialMode = "register", redirectTo = "/profil" }: { initialMode?: Mode; redirectTo?: "/profil" | "/admin" }) {
   const router = useRouter();
   const [mode, setMode] = useState<Mode>(initialMode);
   const [username, setUsername] = useState("");
@@ -60,7 +60,7 @@ export default function ConnexionForm({ initialMode = "register" }: { initialMod
 
       const { error: sessionError } = await supabase.auth.setSession(data.session);
       if (sessionError) throw sessionError;
-      router.replace("/profil");
+      router.replace(redirectTo);
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Une erreur est survenue. Réessaie.");
@@ -84,12 +84,12 @@ export default function ConnexionForm({ initialMode = "register" }: { initialMod
         <Link role="tab" href="/#jeux">Jouer en invité</Link>
       </div>
       <div className="auth-card-icon">🎮</div>
-      <p className="auth-kicker">TON ESPACE JOUEUR</p>
-      <h1>{mode === "register" ? "Crée ton compte." : "Content de te revoir."}</h1>
+      <p className="auth-kicker">{redirectTo === "/admin" ? "ACCÈS À L’ESPACE ADMINISTRATEUR" : "TON ESPACE JOUEUR"}</p>
+      <h1>{redirectTo === "/admin" && mode === "login" ? "Connexion administrateur." : mode === "register" ? "Crée ton compte." : "Content de te revoir."}</h1>
       <p className="auth-description">
         {mode === "register"
           ? "Choisis un pseudo unique et un code PIN secret. Aucun e-mail ni numéro de téléphone demandé."
-          : "Entre ton pseudo et ton code PIN pour retrouver ton compte Mboa Games."}
+          : redirectTo === "/admin" ? "Connecte-toi avec ton compte administrateur. Les droits de ton compte seront vérifiés avant l’ouverture du tableau de bord." : "Entre ton pseudo et ton code PIN pour retrouver ton compte Mboa Games."}
       </p>
 
       <form className="auth-form" onSubmit={submit}>
@@ -152,6 +152,7 @@ export default function ConnexionForm({ initialMode = "register" }: { initialMod
 
       {error && <p className="auth-error" role="alert">{error}</p>}
 
+      {redirectTo === "/admin" && mode === "register" && <p className="auth-hint">Un compte administrateur doit déjà avoir reçu ses autorisations. Créer un compte joueur ne donne aucun droit d’administration.</p>}
       <button
         className="auth-mode-switch"
         type="button"
