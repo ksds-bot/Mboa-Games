@@ -4,12 +4,13 @@ import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Session } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
+import Link from "next/link";
 
 type Mode = "register" | "login";
 
-export default function ConnexionForm() {
+export default function ConnexionForm({ initialMode = "register" }: { initialMode?: Mode }) {
   const router = useRouter();
-  const [mode, setMode] = useState<Mode>("register");
+  const [mode, setMode] = useState<Mode>(initialMode);
   const [username, setUsername] = useState("");
   const [pin, setPin] = useState("");
   const [pinConfirmation, setPinConfirmation] = useState("");
@@ -77,6 +78,11 @@ export default function ConnexionForm() {
 
   return (
     <section className="auth-card">
+      <div className="auth-choice-tabs" role="tablist" aria-label="Choisir un mode">
+        <button type="button" role="tab" aria-selected={mode === "register"} className={mode === "register" ? "is-active" : ""} onClick={() => changeMode("register")}>Créer un compte</button>
+        <button type="button" role="tab" aria-selected={mode === "login"} className={mode === "login" ? "is-active" : ""} onClick={() => changeMode("login")}>Se connecter</button>
+        <Link role="tab" href="/#jeux">Jouer en invité</Link>
+      </div>
       <div className="auth-card-icon">🎮</div>
       <p className="auth-kicker">TON ESPACE JOUEUR</p>
       <h1>{mode === "register" ? "Crée ton compte." : "Content de te revoir."}</h1>
@@ -155,6 +161,7 @@ export default function ConnexionForm() {
         {mode === "register" ? "J'ai déjà un compte — Me connecter" : "Nouveau joueur ? Créer un compte"}
       </button>
 
+      <p className="auth-guest-link">Tu veux juste essayer ? <Link href="/#jeux">Jouer en invité sans créer de compte</Link></p>
       <p className="auth-footnote">Ton PIN est confidentiel. Ne le partage avec personne, même avec un joueur ou un administrateur.</p>
     </section>
   );
