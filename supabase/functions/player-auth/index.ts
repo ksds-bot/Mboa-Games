@@ -60,6 +60,38 @@ Deno.serve(async (req: Request) => {
       return json({ error: "Vérifie ton pseudo et ton code PIN à 6 chiffres." }, 400, origin);
     }
 
+    if (action === "change_admin_credentials") {
+      const authorization = req.headers.get("authorization") ?? "";
+      const accessToken = authorization.replace(/^Bearer\\s+/i, "");
+      if (!accessToken) return json({ error: "Session requise." }, 401, origin);
+      stage = "admin-credential-session";
+      const { data: authData, error: authError } = await authClient.auth.getUser(accessToken);
+      const currentUser = authData.user;
+      if (authError || !currentUser) return json({ error: "Session expirée. Reconnecte-toi." }, 401, origin);
+      stage = "admin-credential-role";
+      const { data: role, error: roleError } = await admin.schema("private").from("admin_user_roles").select("role_key").eq("user_id", currentUser.id).eq("role_key", "super_admin").maybeSingle();
+      if (roleError) throw roleError;
+      if (!role) return json({ error: "Cette opération est réservée au super administrateur." }, 403, origin);
+      stage = "admin-credential-profile";
+      const { data: profile, error: profileError } = await admin.from("profiles").select("username,must_change_credentials").eq("id", currentUser.id).maybeSingle();
+      if (profileError) throw profileError;
+      if (!profile?.must_change_credentials) return json({ error: "La modification initiale est déjà effectuée." }, 409, origin);
+      if (username === profile.username) return json({ error: "Choisis un nouveau pseudo différent de l’identifiant provisoire." }, 400, origin);
+      stage = "admin-credential-username-check";
+      const { data: existing, error: lookupError } = await admin.from("profiles").select("id").eq("username", username).neq("id", currentUser.id).maybeSingle();
+      if (lookupError) throw lookupError;
+      if (existing) return json({ error: "Ce pseudo est déjà utilisé. Choisis-en un autre." }, 409, origin);
+      const { error: updateProfileError } = await admin.from("profiles").update({ username, display_name: username, must_change_credentials: false, updated_at: new Date().toISOString() }).eq("id", currentUser.id);
+      if (updateProfileError) { if (updateProfileError.code === "23505") return json({ error: "Ce pseudo est déjà utilisé." }, 409, origin); throw updateProfileError; }
+      stage = "admin-credential-auth";
+      const { error: updateAuthError } = await admin.auth.admin.updateUserById(currentUser.id, { email: username + "@players.mboa-games.invalid", password: pin + "mB!", user_metadata: { ...currentUser.user_metadata, username } });
+      if (updateAuthError) { await admin.from("profiles").update({ username: profile.username, display_name: profile.username, must_change_credentials: true }).eq("id", currentUser.id); throw updateAuthError; }
+      await admin.from("admin_audit_logs").insert({ actor_user_id: currentUser.id, target_user_id: currentUser.id, action: "admin.initial_credentials_changed", entity_type: "admin_account", entity_id: currentUser.id, details: { username_changed: true, pin_rotated: true } });
+      const { data: signedIn, error: signInError } = await authClient.auth.signInWithPassword({ email: username + "@players.mboa-games.invalid", password: pin + "mB!" });
+      if (signInError || !signedIn.session) throw signInError ?? new Error("Reconnecte-toi avec tes nouveaux identifiants.");
+      return json({ session: signedIn.session }, 200, origin);
+    }
+
     if (action === "register") {
       if (body?.pinConfirmation !== pin) {
         return json({ error: "Les deux codes PIN ne correspondent pas." }, 400, origin);
