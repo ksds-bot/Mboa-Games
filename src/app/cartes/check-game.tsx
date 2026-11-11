@@ -193,7 +193,7 @@ export default function CheckGame() {
             <section className="mt-4 rounded-[2rem] border border-[#c8f169]/15 bg-[radial-gradient(ellipse_at_center,#24543b_0%,#153b2b_55%,#102b20_100%)] p-4 shadow-2xl sm:p-8">
               <div className="flex items-center justify-between gap-3 text-xs font-bold text-white/65"><span>TABLE DE JEU</span><span>TOUR {game.turnNumber} · {game.direction === 1 ? "↻ Sens horaire" : "↺ Sens inverse"}</span></div>
               <div className="flex min-h-[190px] items-center justify-center gap-5 py-7">
-                <button onClick={drawForHuman} disabled={!isHumanTurn || busy || mustDecideDraw} className="flex h-[116px] w-[78px] flex-col items-center justify-center rounded-xl border-2 border-dashed border-white/40 bg-[#173b2b] text-3xl shadow-xl transition hover:scale-105 disabled:opacity-40"><span>🂠</span><span className="mt-1 text-[10px] font-black">PIOCHER</span><span className="text-[9px] text-white/50">{game.drawPile.length} restantes</span></button>
+                <button onClick={drawForHuman} disabled={!isHumanTurn || busy || mustDecideDraw || playableIds.size > 0} className="flex h-[116px] w-[78px] flex-col items-center justify-center rounded-xl border-2 border-dashed border-white/40 bg-[#173b2b] text-3xl shadow-xl transition hover:scale-105 disabled:opacity-40"><span>🂠</span><span className="mt-1 text-[10px] font-black">PIOCHER</span><span className="text-[9px] text-white/50">{game.drawPile.length} restantes</span></button>
                 {top && <div className="text-center"><CardFace card={top} /><p className="mt-2 text-[10px] font-bold text-white/65">DÉFAUSSE</p></div>}
                 {game.chosenSuit && <div className="rounded-xl bg-black/25 px-3 py-2 text-xs font-bold">Couleur : {suitLabel[game.chosenSuit]} {suitSymbol[game.chosenSuit]}</div>}
               </div>
@@ -217,6 +217,18 @@ export default function CheckGame() {
             {winner && <section className="mt-5 rounded-3xl border border-[#c8f169]/40 bg-[#c8f169]/10 p-6 text-center"><div className="text-5xl">🏆</div><h2 className="mt-3 text-2xl font-black">{winner.id === HUMAN ? "Tu as gagné !" : "Le Mboma a gagné !"}</h2><p className="mt-2 text-sm text-white/65">Partie terminée · {game.turnNumber} tours joués</p><button onClick={reset} className="mt-5 rounded-xl bg-[#c8f169] px-6 py-3 font-black text-[#101b18]">Rejouer</button></section>}
           </>
         )}
+        <section className="mt-8 rounded-3xl border border-white/10 bg-[#192722] p-5 sm:p-6">
+          <h2 className="text-lg font-black text-[#c8f169]">Règles rapides de CHECK!</h2>
+          <div className="mt-3 grid gap-3 text-sm leading-6 text-white/70 sm:grid-cols-2">
+            <p><strong className="text-white">But :</strong> être le premier à poser toutes ses cartes. On joue une carte de même couleur ou de même valeur que la défausse.</p>
+            <p><strong className="text-white">Pioche :</strong> si tu n’as aucune carte jouable, pioche. Si la carte tirée est jouable, tu peux la poser immédiatement.</p>
+            <p><strong className="text-white">As :</strong> se pose sur toute carte hors pénalité et permet de choisir la couleur.</p>
+            <p><strong className="text-white">2 :</strong> ajoute 2 cartes à la pénalité. Seul un autre 2 peut cumuler cette pénalité.</p>
+            <p><strong className="text-white">8 :</strong> fait passer le joueur suivant ; à deux joueurs, tu rejoues.</p>
+            <p><strong className="text-white">Valet :</strong> inverse le sens ; à deux joueurs, tu rejoues.</p>
+            <p className="sm:col-span-2"><strong className="text-white">CHECK ! :</strong> quand tu poses ton avant-dernière carte, annonce CHECK pendant le même tour. Si tu oublies, tu pioches 2 cartes.</p>
+          </div>
+        </section>
         <p className="mt-8 text-center text-xs text-white/35">Mboa Games · Test gratuit · Aucun argent réel · 🇨🇲</p>
       </div>
     </main>
