@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Session } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
@@ -16,6 +16,11 @@ export default function ConnexionForm({ initialMode = "register", redirectTo = "
   const [pinConfirmation, setPinConfirmation] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (redirectTo !== "/admin") return;
+    void createClient().auth.signOut();
+  }, [redirectTo]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -79,9 +84,9 @@ export default function ConnexionForm({ initialMode = "register", redirectTo = "
   return (
     <section className="auth-card">
       <div className="auth-choice-tabs" role="tablist" aria-label="Choisir un mode">
-        <button type="button" role="tab" aria-selected={mode === "register"} className={mode === "register" ? "is-active" : ""} onClick={() => changeMode("register")}>Créer un compte</button>
+        {redirectTo !== "/admin" && <button type="button" role="tab" aria-selected={mode === "register"} className={mode === "register" ? "is-active" : ""} onClick={() => changeMode("register")}>Créer un compte</button>}
         <button type="button" role="tab" aria-selected={mode === "login"} className={mode === "login" ? "is-active" : ""} onClick={() => changeMode("login")}>Se connecter</button>
-        <Link role="tab" href="/#jeux">Jouer en invité</Link>
+        {redirectTo !== "/admin" && <Link role="tab" href="/#jeux">Jouer en invité</Link>}
       </div>
       <div className="auth-card-icon">🎮</div>
       <p className="auth-kicker">{redirectTo === "/admin" ? "ACCÈS À L’ESPACE ADMINISTRATEUR" : "TON ESPACE JOUEUR"}</p>
@@ -152,17 +157,17 @@ export default function ConnexionForm({ initialMode = "register", redirectTo = "
 
       {error && <p className="auth-error" role="alert">{error}</p>}
 
-      {redirectTo === "/admin" && mode === "register" && <p className="auth-hint">Un compte administrateur doit déjà avoir reçu ses autorisations. Créer un compte joueur ne donne aucun droit d’administration.</p>}
-      <button
+      {redirectTo === "/admin" && <p className="auth-hint">Connexion indépendante requise. La session joueur déjà ouverte sur cet appareil sera fermée avant cette connexion.</p>}
+      {redirectTo !== "/admin" && <button
         className="auth-mode-switch"
         type="button"
         onClick={() => changeMode(mode === "register" ? "login" : "register")}
         disabled={busy}
       >
         {mode === "register" ? "J'ai déjà un compte — Me connecter" : "Nouveau joueur ? Créer un compte"}
-      </button>
+      </button>}
 
-      <p className="auth-guest-link">Tu veux juste essayer ? <Link href="/#jeux">Jouer en invité sans créer de compte</Link></p>
+      {redirectTo !== "/admin" && <p className="auth-guest-link">Tu veux juste essayer ? <Link href="/#jeux">Jouer en invité sans créer de compte</Link></p>}
       <p className="auth-footnote">Ton PIN est confidentiel. Ne le partage avec personne, même avec un joueur ou un administrateur.</p>
     </section>
   );
