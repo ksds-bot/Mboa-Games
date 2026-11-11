@@ -52,7 +52,7 @@ export default function Home() {
             <a href="#communaute">Communauté</a>
           </nav>
 
-          <div className="header-account-actions"><Link className="header-login" href="/connexion?mode=login">Se connecter</Link><Link className="header-cta" href="/connexion?mode=register">Créer un compte <ArrowUpRight size={16} /></Link></div>
+          <div className="header-account-actions"><Link className="header-login" href="/connexion?mode=login&next=%2Fadmin">Espace administrateur</Link><Link className="header-login" href="/connexion?mode=login">Se connecter</Link><Link className="header-cta" href="/connexion?mode=register">Créer un compte <ArrowUpRight size={16} /></Link></div>
           <button className="mobile-menu-button" onClick={() => setMenuOpen(!menuOpen)} aria-label={menuOpen ? "Fermer le menu" : "Ouvrir le menu"} aria-expanded={menuOpen}>
             {menuOpen ? <X size={22} /> : <Menu size={22} />}
           </button>
@@ -61,7 +61,7 @@ export default function Home() {
           <nav className="mobile-nav" aria-label="Navigation mobile">
             <a href="#jeux" onClick={() => setMenuOpen(false)}>Les jeux</a>
             <a href="#concept" onClick={() => setMenuOpen(false)}>Le concept</a>
-            <a href="#communaute" onClick={() => setMenuOpen(false)}>Communauté</a>
+            <a href="#communaute" onClick={() => setMenuOpen(false)}>Communauté</a>\n            <Link href="/connexion?mode=login&next=%2Fadmin" onClick={() => setMenuOpen(false)}>Espace administrateur</Link>
           </nav>
         )}
       </header>
