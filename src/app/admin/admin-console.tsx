@@ -27,6 +27,7 @@ export default function AdminConsole() {
   const [reason, setReason] = useState("");
   const [paymentProvider, setPaymentProvider] = useState<"orange_money"|"mtn_momo"|"other">("orange_money");
   const [paymentReference, setPaymentReference] = useState("");
+  const [paidAmountXaf, setPaidAmountXaf] = useState("");
   const [payoutAmount, setPayoutAmount] = useState("");
   const [payoutReference, setPayoutReference] = useState("");
   const [payoutProvider, setPayoutProvider] = useState<"orange_money"|"mtn_momo"|"other">("orange_money");
@@ -111,6 +112,7 @@ export default function AdminConsole() {
       return;
     }
     if (asset === "tokens" && parsed > 0) {
+      if (!Number.isSafeInteger(Number(paidAmountXaf)) || Number(paidAmountXaf) < 1) { setError("Indique le montant réellement reçu en FCFA."); return; }
       if (paymentReference.trim().length < 4) { setError("La référence du paiement Orange Money / MTN MoMo est obligatoire."); return; }
       await run(async () => {
         const { error: rpcError } = await supabase.rpc("admin_credit_tokens_after_payment", {
@@ -118,7 +120,7 @@ export default function AdminConsole() {
           p_reference: paymentReference.trim(), p_note: reason.trim(),
         });
         if (rpcError) throw rpcError;
-        setReason(""); setPaymentReference("");
+        setReason(""); setPaymentReference(""); setPaidAmountXaf("");
       }, "Paiement vérifié : jetons crédités et opération auditée.");
       return;
     }
@@ -232,11 +234,12 @@ export default function AdminConsole() {
                   {asset === "tokens" && Number(amount) > 0 && <>
                     <label className="mt-4 block text-xs font-bold text-white/55">Paiement reçu via</label>
                     <select value={paymentProvider} onChange={(e)=>setPaymentProvider(e.target.value as typeof paymentProvider)} className="mt-2 w-full rounded-xl border border-white/10 bg-[#101a16] p-3 text-sm"><option value="orange_money">Orange Money</option><option value="mtn_momo">MTN MoMo</option><option value="other">Autre</option></select>
+                    <label className="mt-4 block text-xs font-bold text-white/55">Montant reçu (FCFA)</label><input value={paidAmountXaf} onChange={(e)=>setPaidAmountXaf(e.target.value)} inputMode="numeric" placeholder="Ex. 1000" className="mt-2 w-full rounded-xl border border-white/10 bg-[#101a16] p-3 text-sm"/>
                     <label className="mt-4 block text-xs font-bold text-white/55">Référence du paiement vérifié</label>
                     <input value={paymentReference} onChange={(e)=>setPaymentReference(e.target.value)} maxLength={120} placeholder="Référence de transaction" className="mt-2 w-full rounded-xl border border-white/10 bg-[#101a16] p-3 text-sm"/>
                   </>}
                   <label className="mt-4 block text-xs font-bold text-white/55">Motif / note obligatoire</label><textarea value={reason} onChange={(e)=>setReason(e.target.value)} maxLength={180} placeholder="Ex. paiement reçu et vérifié, correction…" className="mt-2 min-h-24 w-full rounded-xl border border-white/10 bg-[#101a16] p-3 text-sm"/>
-                  <button disabled={busy||reason.trim().length<5||(asset==="tokens"&&Number(amount)>0&&paymentReference.trim().length<4)} onClick={()=>void adjustBalance()} className="mt-4 w-full rounded-xl bg-[#d2f178] px-4 py-3 font-black text-[#172219]">{busy?"Traitement…":"Valider l’opération"}</button>
+                  <button disabled={busy||reason.trim().length<5||(asset==="tokens"&&Number(amount)>0&&(paymentReference.trim().length<4||Number(paidAmountXaf)<1))} onClick={()=>void adjustBalance()} className="mt-4 w-full rounded-xl bg-[#d2f178] px-4 py-3 font-black text-[#172219]">{busy?"Traitement…":"Valider l’opération"}</button>
                   <p className="mt-3 text-[11px] leading-5 text-white/40">Chaque mouvement est inscrit dans le portefeuille et le journal d’audit. Aucun solde d’argent réel n’est conservé dans le compte joueur.</p>
                 </> : <p className="mt-4 text-sm text-white/45">Ton rôle ne permet pas d’ajuster les soldes.</p>}
               </>}
