@@ -250,9 +250,11 @@ export default function LudoOnline() {
         }
       });
     const onResume=()=>{if(document.visibilityState==="visible"&&navigator.onLine)void syncRoom();};
-    const onOnline=()=>{setRealtimeStatus("connecting");void syncRoom();};
+    const onOnline=()=>{realtimeStatusRef.current="connecting";setRealtimeStatus("connecting");void syncRoom();};
+    const onOffline=()=>{realtimeStatusRef.current="reconnecting";setRealtimeStatus("reconnecting");};
     window.addEventListener("focus",onResume);
     window.addEventListener("online",onOnline);
+    window.addEventListener("offline",onOffline);
     document.addEventListener("visibilitychange",onResume);
     const fallback=window.setInterval(()=>{
       if(realtimeStatusRef.current!=="connected"&&navigator.onLine)void syncRoom();
@@ -262,6 +264,7 @@ export default function LudoOnline() {
       window.clearInterval(fallback);
       window.removeEventListener("focus",onResume);
       window.removeEventListener("online",onOnline);
+      window.removeEventListener("offline",onOffline);
       document.removeEventListener("visibilitychange",onResume);
       void supabase.removeChannel(channel);
     };
