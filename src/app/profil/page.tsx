@@ -6,6 +6,7 @@ import UsernameSetup from "./username-setup";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata = { title: "Mon tableau de bord" };
+export const dynamic = "force-dynamic";
 
 const number = new Intl.NumberFormat("fr-FR");
 const francs = new Intl.NumberFormat("fr-FR", {
