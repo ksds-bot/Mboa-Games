@@ -4,6 +4,7 @@ import ConnexionForm from "./connexion-form";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata = { title: "Connexion joueur et administrateur" };
+export const dynamic = "force-dynamic";
 
 type ConnexionPageProps = { searchParams: Promise<{ mode?: string; next?: string }> };
 
