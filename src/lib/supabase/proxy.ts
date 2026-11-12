@@ -37,5 +37,14 @@ export async function updateSession(request: NextRequest) {
   // getClaims valide le JWT ; getSession ne doit pas servir à autoriser l'accès.
   await supabase.auth.getClaims();
 
+  // Les réponses contenant des cookies d’authentification ne doivent jamais
+  // être réutilisées par un cache partagé entre plusieurs visiteurs.
+  const pathname = request.nextUrl.pathname;
+  const isSensitiveRoute = pathname === "/connexion" || pathname === "/profil" || pathname.startsWith("/admin");
+  if (isSensitiveRoute) {
+    supabaseResponse.headers.set("Cache-Control", "private, no-store, max-age=0, must-revalidate");
+    supabaseResponse.headers.set("Vary", "Cookie");
+  }
+
   return supabaseResponse;
 }
