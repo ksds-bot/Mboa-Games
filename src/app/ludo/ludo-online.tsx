@@ -187,6 +187,7 @@ export default function LudoOnline() {
   const [chatDraft,setChatDraft] = useState("");
   const [chatBusy,setChatBusy] = useState(false);
   const [clockNow,setClockNow] = useState(Date.now());
+  const [realtimeStatus,setRealtimeStatus] = useState<"connecting"|"connected"|"reconnecting">("connecting");
   const expireInFlight = useRef(false);
 
   const refreshChat = useCallback(async (code:string) => {
@@ -221,14 +222,46 @@ export default function LudoOnline() {
 
   useEffect(()=>{
     if(!snapshot?.room.id)return;
+    let disposed=false;
+    const syncRoom=()=>Promise.all([
+      refreshRoom(snapshot.room.code),
+      refreshChat(snapshot.room.code)
+    ]).catch((e)=>{if(!disposed)setError(e instanceof Error?e.message:"Synchronisation impossible.");});
     const channel=supabase.channel("ludo-room-"+snapshot.room.id)
       .on("postgres_changes",{event:"*",schema:"public",table:"room_players",filter:"room_id=eq."+snapshot.room.id},()=>{void refreshRoom(snapshot.room.code).catch((e)=>setError(e.message));})
       .on("postgres_changes",{event:"*",schema:"public",table:"game_sessions",filter:"room_id=eq."+snapshot.room.id},()=>{void refreshRoom(snapshot.room.code).catch((e)=>setError(e.message));})
       .on("postgres_changes",{event:"INSERT",schema:"public",table:"ludo_chat_messages",filter:"room_id=eq."+snapshot.room.id},()=>{void refreshChat(snapshot.room.code).catch((e)=>setError(e.message));})
       .on("postgres_changes",{event:"*",schema:"public",table:"ludo_chat_reactions",filter:"room_id=eq."+snapshot.room.id},()=>{void refreshChat(snapshot.room.code).catch((e)=>setError(e.message));})
-      .subscribe((status)=>{if(status==="CHANNEL_ERROR"||status==="TIMED_OUT")setError("Connexion temps réel du salon interrompue. Vérifie ta connexion.");});
-    return ()=>{void supabase.removeChannel(channel);};
-  },[snapshot?.room.id,snapshot?.room.code,supabase,refreshRoom,refreshChat]);
+      .subscribe((status)=>{
+        if(disposed)return;
+        if(status==="SUBSCRIBED"){
+          setRealtimeStatus("connected");
+          setError("");
+          void syncRoom();
+        }else if(status==="CHANNEL_ERROR"||status==="TIMED_OUT"||status==="CLOSED"){
+          setRealtimeStatus("reconnecting");
+          setError("Connexion interrompue : récupération automatique de la partie en cours.");
+        }else{
+          setRealtimeStatus("connecting");
+        }
+      });
+    const onResume=()=>{if(document.visibilityState==="visible"&&navigator.onLine)void syncRoom();};
+    const onOnline=()=>{setRealtimeStatus("connecting");void syncRoom();};
+    window.addEventListener("focus",onResume);
+    window.addEventListener("online",onOnline);
+    document.addEventListener("visibilitychange",onResume);
+    const fallback=window.setInterval(()=>{
+      if(realtimeStatus!=="connected"&&navigator.onLine)void syncRoom();
+    },5000);
+    return ()=>{
+      disposed=true;
+      window.clearInterval(fallback);
+      window.removeEventListener("focus",onResume);
+      window.removeEventListener("online",onOnline);
+      document.removeEventListener("visibilitychange",onResume);
+      void supabase.removeChannel(channel);
+    };
+  },[snapshot?.room.id,snapshot?.room.code,supabase,refreshRoom,refreshChat,realtimeStatus]);
 
   useEffect(()=>{
     if(!snapshot?.room.code)return;
@@ -435,7 +468,7 @@ export default function LudoOnline() {
                   <p className="mt-3 text-xs leading-5 text-white/55">Envoie ce code à tes amis. Ils doivent se connecter à leur compte Mboa Games pour entrer.</p>
                 </div>
                 <div className="rounded-2xl border border-white/10 bg-black/15 p-5">
-                  <div className="flex items-center justify-between"><h3 className="font-black">Joueurs · {players.length}/{room.maxPlayers}</h3><span className="text-[10px] font-black uppercase tracking-widest text-[#d2f178]">{room.status==="waiting"?"En attente":room.status==="playing"?"En direct":"Terminée"}</span></div>
+                  <div className="flex flex-wrap items-center justify-between gap-2"><h3 className="font-black">Joueurs · {players.length}/{room.maxPlayers}</h3><div className="flex items-center gap-2"><span className={"h-2 w-2 rounded-full "+(realtimeStatus==="connected"?"bg-[#d2f178]":realtimeStatus==="reconnecting"?"bg-amber-400 animate-pulse":"bg-white/40 animate-pulse")}/><span className="text-[10px] font-bold text-white/55">{realtimeStatus==="connected"?"Synchronisé":realtimeStatus==="reconnecting"?"Reconnexion…":"Connexion…"}</span><span className="text-[10px] font-black uppercase tracking-widest text-[#d2f178]">{room.status==="waiting"?"En attente":room.status==="playing"?"En direct":"Terminée"}</span></div></div>
                   <div className="mt-4 space-y-3">{players.map((p,i)=><div key={p.userId} className="flex items-center justify-between gap-3 rounded-xl bg-white/[.04] p-3"><div className="flex min-w-0 items-center gap-3"><span className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-sm font-black text-[#102018]" style={{background:playerColor(players,i)}}>{p.username.slice(0,1).toUpperCase()}</span><div className="min-w-0"><p className="truncate text-sm font-bold">{p.username}{p.userId===userId?" (toi)":""}</p><p className="text-[10px] text-white/45">{COLOR_NAMES[p.colorIndex ?? i]} {p.userId===room.hostId?"· Hôte":""}</p></div></div><span className={p.ready?"text-[#d2f178]":"text-white/35"}>{p.ready?<Check size={19}/>: "Pas prêt"}</span></div>)}</div>
                   {room.status==="waiting"&&isHost&&<div className="mt-4 rounded-xl bg-white/[.04] p-3"><label className="block text-xs font-black text-white/70">Mise en points virtuels par joueur</label><select className="ludo-input mt-2" value={room.pointsStake??0} disabled={busy} onChange={e=>void setStake(Number(e.target.value))}><option value={0}>Gratuit · 0 point</option><option value={10}>10 points</option><option value={25}>25 points</option><option value={50}>50 points</option><option value={100}>100 points</option><option value={250}>250 points</option><option value={500}>500 points</option></select><p className="mt-2 text-[10px] leading-4 text-white/45">La mise est débitée au lancement uniquement si tous les joueurs ont assez de points. Le gagnant reçoit le pot complet.</p></div>}
                   {(room.pointsStake??0)>0&&<p className="rounded-xl bg-[#d2f178]/10 p-3 text-center text-xs font-bold text-[#d2f178]">Pot prévu : {(room.pointsStake??0)*players.length} points · {(room.pointsStake??0)} par joueur</p>}
