@@ -226,10 +226,10 @@ export default function AdminConsole() {
             </div>
             <div className="rounded-2xl border border-white/10 bg-[#1b2a22] p-5">
               <h2 className="text-xl font-black">Opérations sur le compte</h2>
-              {!selected ? <p className="mt-4 text-sm text-white/45">Sélectionne un joueur pour gérer ses points cadeaux ou ses jetons de courtoisie.</p> : <>
+              {!selected ? <p className="mt-4 text-sm text-white/45">Sélectionne un joueur pour gérer ses points de progression ou ses jetons de courtoisie.</p> : <>
                 <div className="mt-4 rounded-xl bg-black/20 p-4"><strong>{selected.username}</strong><p className="mt-1 break-all text-[10px] text-white/35">{selected.id}</p><div className="mt-3 grid grid-cols-2 gap-2 text-xs"><span>Points : <b>{number.format(selected.points)}</b></span><span>Jetons : <b>{number.format(selected.tokens)}</b></span></div></div>
                 {(has("wallet.points.adjust")||has("wallet.tokens.adjust")) ? <>
-                  <label className="mt-4 block text-xs font-bold text-white/55">Actif à ajuster</label><select value={asset} onChange={(e)=>setAsset(e.target.value as "points"|"tokens")} className="mt-2 w-full rounded-xl border border-white/10 bg-[#101a16] p-3 text-sm"><option value="points" disabled={!has("wallet.points.adjust")}>Points cadeaux</option><option value="tokens" disabled={!has("wallet.tokens.adjust")}>Jetons (crédit manuel après vérification)</option></select>
+                  <label className="mt-4 block text-xs font-bold text-white/55">Actif à ajuster</label><select value={asset} onChange={(e)=>setAsset(e.target.value as "points"|"tokens")} className="mt-2 w-full rounded-xl border border-white/10 bg-[#101a16] p-3 text-sm"><option value="points" disabled={!has("wallet.points.adjust")}>Points de progression</option><option value="tokens" disabled={!has("wallet.tokens.adjust")}>Jetons (crédit manuel après vérification)</option></select>
                   <label className="mt-4 block text-xs font-bold text-white/55">Quantité (+ pour offrir, − pour corriger)</label><input value={amount} onChange={(e)=>setAmount(e.target.value)} inputMode="numeric" className="mt-2 w-full rounded-xl border border-white/10 bg-[#101a16] p-3 text-sm"/>
                   {asset === "tokens" && Number(amount) > 0 && <>
                     <label className="mt-4 block text-xs font-bold text-white/55">Paiement reçu via</label>
