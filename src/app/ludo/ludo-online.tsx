@@ -189,6 +189,7 @@ export default function LudoOnline() {
   const [clockNow,setClockNow] = useState(Date.now());
   const [realtimeStatus,setRealtimeStatus] = useState<"connecting"|"connected"|"reconnecting">("connecting");
   const expireInFlight = useRef(false);
+  const realtimeStatusRef = useRef<"connecting"|"connected"|"reconnecting">("connecting");
 
   const refreshChat = useCallback(async (code:string) => {
     const {data,error:rpcError} = await supabase.rpc("ludo_chat_history",{p_code:code});
@@ -235,13 +236,16 @@ export default function LudoOnline() {
       .subscribe((status)=>{
         if(disposed)return;
         if(status==="SUBSCRIBED"){
+          realtimeStatusRef.current="connected";
           setRealtimeStatus("connected");
           setError("");
           void syncRoom();
         }else if(status==="CHANNEL_ERROR"||status==="TIMED_OUT"||status==="CLOSED"){
+          realtimeStatusRef.current="reconnecting";
           setRealtimeStatus("reconnecting");
           setError("Connexion interrompue : récupération automatique de la partie en cours.");
         }else{
+          realtimeStatusRef.current="connecting";
           setRealtimeStatus("connecting");
         }
       });
@@ -251,7 +255,7 @@ export default function LudoOnline() {
     window.addEventListener("online",onOnline);
     document.addEventListener("visibilitychange",onResume);
     const fallback=window.setInterval(()=>{
-      if(realtimeStatus!=="connected"&&navigator.onLine)void syncRoom();
+      if(realtimeStatusRef.current!=="connected"&&navigator.onLine)void syncRoom();
     },5000);
     return ()=>{
       disposed=true;
@@ -261,7 +265,7 @@ export default function LudoOnline() {
       document.removeEventListener("visibilitychange",onResume);
       void supabase.removeChannel(channel);
     };
-  },[snapshot?.room.id,snapshot?.room.code,supabase,refreshRoom,refreshChat,realtimeStatus]);
+  },[snapshot?.room.id,snapshot?.room.code,supabase,refreshRoom,refreshChat]);
 
   useEffect(()=>{
     if(!snapshot?.room.code)return;
