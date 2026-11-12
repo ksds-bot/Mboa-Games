@@ -225,6 +225,7 @@ export default function LudoOnline() {
       .on("postgres_changes",{event:"*",schema:"public",table:"room_players",filter:"room_id=eq."+snapshot.room.id},()=>{void refreshRoom(snapshot.room.code).catch((e)=>setError(e.message));})
       .on("postgres_changes",{event:"*",schema:"public",table:"game_sessions",filter:"room_id=eq."+snapshot.room.id},()=>{void refreshRoom(snapshot.room.code).catch((e)=>setError(e.message));})
       .on("postgres_changes",{event:"INSERT",schema:"public",table:"ludo_chat_messages",filter:"room_id=eq."+snapshot.room.id},()=>{void refreshChat(snapshot.room.code).catch((e)=>setError(e.message));})
+      .on("postgres_changes",{event:"*",schema:"public",table:"ludo_chat_reactions",filter:"room_id=eq."+snapshot.room.id},()=>{void refreshChat(snapshot.room.code).catch((e)=>setError(e.message));})
       .subscribe((status)=>{if(status==="CHANNEL_ERROR"||status==="TIMED_OUT")setError("Connexion temps réel du salon interrompue. Vérifie ta connexion.");});
     return ()=>{void supabase.removeChannel(channel);};
   },[snapshot?.room.id,snapshot?.room.code,supabase,refreshRoom,refreshChat]);
