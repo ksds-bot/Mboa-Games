@@ -20,6 +20,7 @@ type CheckState = {
   winnerId: string | null;
   turnNumber: number;
   lastAction: string;
+  canPassAfterDraw?: boolean;
 };
 type Snapshot = { room: Room; players: RoomPlayer[] };
 const SUITS: Suit[] = ["hearts", "diamonds", "clubs", "spades"];
@@ -132,7 +133,7 @@ export default function CheckOnline({ onBack }: { onBack: () => void }) {
     });
   }
 
-  async function action(type: "draw" | "announce" | "finish" | "play", cardId?: string, chosenSuit?: Suit) {
+  async function action(type: "draw" | "pass" | "announce" | "finish" | "play", cardId?: string, chosenSuit?: Suit) {
     if (!snapshot) return;
     await run(async () => {
       const { data, error: rpcError } = await supabase.rpc("mboa_check_action", {
@@ -189,6 +190,7 @@ export default function CheckOnline({ onBack }: { onBack: () => void }) {
           <div className="flex min-h-[190px] flex-wrap items-center justify-center gap-5 py-7"><button disabled={!myTurn || busy || (game.pendingDraw === 0 && myHand.some(playable))} onClick={() => void action("draw")} className="flex h-[104px] w-[70px] flex-col items-center justify-center rounded-xl border-2 border-dashed border-white/40 bg-[#173b2b] text-3xl disabled:opacity-40"><span>🂠</span><span className="mt-1 text-[10px] font-black">PIOCHER</span></button>{top && <div className="text-center"><Face card={top}/><p className="mt-2 text-[10px] font-bold text-white/65">DÉFAUSSE</p></div>}{game.chosenSuit && <p className="rounded-xl bg-black/25 px-3 py-2 text-xs font-bold">Couleur demandée : {SUIT_LABEL[game.chosenSuit]}</p>}</div>
           {game.pendingDraw > 0 && <p className="mb-4 text-center text-sm font-black text-orange-200">Pénalité : +{game.pendingDraw} cartes · seul un 2 peut répondre</p>}
           <p className="rounded-2xl bg-black/20 p-3 text-center text-sm text-white/85" aria-live="polite">{game.lastAction}</p>
+          {game.canPassAfterDraw && myTurn && <button disabled={busy} onClick={() => void action("pass")} className="mt-4 block w-full rounded-xl border border-white/20 px-4 py-3 text-sm font-bold text-white/80 disabled:opacity-50">Passer mon tour</button>}
         </section>}
 
         {game && <section className="mt-5 rounded-3xl border border-white/10 bg-[#192722] p-4 sm:p-6">
