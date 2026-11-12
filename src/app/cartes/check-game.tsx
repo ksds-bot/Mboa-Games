@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import SiteHeader from "@/components/site-header";
+import GameRoomPanel from "@/components/game-room-panel";
 import {
   SUITS, type Suit, type Card, type GameState,
   createGame, canPlayCard, playCard, drawCard, announceCheck, finishTurn,
@@ -175,6 +176,7 @@ export default function CheckGame() {
           <div className="flex items-center gap-2 rounded-full border border-[#c8f169]/20 bg-[#c8f169]/10 px-4 py-2 text-xs font-bold text-[#d7f89b]">🎮 Partie gratuite · Test</div>
         </header>
 
+        <GameRoomPanel gameType="cartes" gameName="CHECK!" maxPlayers={2} />
         {!game ? (
           <section className="mt-8 rounded-3xl border border-white/10 bg-[#192722] p-6 sm:p-8">
             <div className="text-5xl">🃏</div><h2 className="mt-4 text-2xl font-black">Prêt à jouer ?</h2>
