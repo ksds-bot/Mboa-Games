@@ -171,7 +171,7 @@ export default function CheckGame() {
   return (
     <>
     <SiteHeader active="cards" />
-    <main className="min-h-screen bg-[#0c1713] px-3 py-5 text-white sm:px-6">
+    <main className="mboa-app-surface min-h-screen bg-[#0c1713] px-3 py-5 text-white sm:px-6">
       <div className="mx-auto max-w-5xl">
         <a href="/" className="text-sm font-bold text-white/60 hover:text-white">← Retour à Mboa Games</a>
         <header className="mt-5 flex flex-wrap items-center justify-between gap-3">
