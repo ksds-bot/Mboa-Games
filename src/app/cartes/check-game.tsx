@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import SiteHeader from "@/components/site-header";
-import GameRoomPanel from "@/components/game-room-panel";
+import CheckOnline from "./check-online";
 import {
   SUITS, type Suit, type Card, type GameState,
   createGame, canPlayCard, playCard, drawCard, announceCheck, finishTurn,
@@ -64,6 +64,7 @@ export default function CheckGame() {
   const [mustDecideDraw, setMustDecideDraw] = useState(false);
   const [message, setMessage] = useState("Lance une partie gratuite contre l’ordinateur !");
   const [busy, setBusy] = useState(false);
+  const [mode, setMode] = useState<"bot" | "online">("bot");
 
   const human = game?.players.find((p) => p.id === HUMAN);
   const bot = game?.players.find((p) => p.id === BOT);
@@ -165,6 +166,8 @@ export default function CheckGame() {
 
   const winner = game?.players.find((p) => p.id === game.winnerId);
 
+  if (mode === "online") return <CheckOnline onBack={() => setMode("bot")} />;
+
   return (
     <>
     <SiteHeader active="cards" />
@@ -176,7 +179,7 @@ export default function CheckGame() {
           <div className="flex items-center gap-2 rounded-full border border-[#c8f169]/20 bg-[#c8f169]/10 px-4 py-2 text-xs font-bold text-[#d7f89b]">🎮 Partie gratuite · Test</div>
         </header>
 
-        <GameRoomPanel gameType="cartes" gameName="CHECK!" maxPlayers={2} />
+        <div className="mt-5 flex flex-wrap gap-2"><button onClick={() => setMode("bot")} className="rounded-xl bg-[#c8f169] px-4 py-2 text-xs font-black text-[#102018]">🤖 Contre Mboma</button><button onClick={() => setMode("online")} className="rounded-xl border border-[#c8f169]/35 bg-[#c8f169]/10 px-4 py-2 text-xs font-black text-[#d7f89b]">🌍 Jouer à distance</button></div>
         {!game ? (
           <section className="mt-8 rounded-3xl border border-white/10 bg-[#192722] p-6 sm:p-8">
             <div className="text-5xl">🃏</div><h2 className="mt-4 text-2xl font-black">Prêt à jouer ?</h2>
