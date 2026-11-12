@@ -136,7 +136,7 @@ export default function CheckGame() {
   };
 
   useEffect(() => {
-    if (!game || game.status !== "playing" || game.players[game.currentPlayerIndex]?.id !== BOT) return;
+    if (mode !== "bot" || !game || game.status !== "playing" || game.players[game.currentPlayerIndex]?.id !== BOT) return;
     const timer = window.setTimeout(() => {
       setBusy(true);
       setGame((current) => {
@@ -162,7 +162,7 @@ export default function CheckGame() {
       });
     }, 750);
     return () => window.clearTimeout(timer);
-  }, [game, level]);
+  }, [game, level, mode]);
 
   const winner = game?.players.find((p) => p.id === game.winnerId);
 
