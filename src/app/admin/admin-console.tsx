@@ -8,7 +8,7 @@ type Role = { key: string; label: string; description: string; permissions: stri
 type Setting = { key: string; category: string; label: string; description: string; value: unknown; editable: boolean };
 type Summary = { players: number; rooms: number; active_rooms: number; points_in_circulation: number; tokens_in_circulation: number };
 type Snapshot = { roles: Role[]; permissions: string[]; roleCatalog: Role[]; summary: Summary; settings: Setting[] };
-type Player = { id: string; username: string; displayName: string; createdAt: string; points: number; tokens: number; cashXaf: number; roles: string[] };
+type Player = { id: string; username: string; displayName: string; createdAt: string; points: number; tokens: number; roles: string[] };
 type Audit = { id: number; action: string; actor: string; targetUserId: string | null; entityType: string; entityId: string | null; details: Record<string, unknown>; createdAt: string };
 
 const number = new Intl.NumberFormat("fr-FR");
@@ -22,7 +22,7 @@ export default function AdminConsole() {
   const [search, setSearch] = useState("");
   const [tab, setTab] = useState("overview");
   const [selected, setSelected] = useState<Player | null>(null);
-  const [asset, setAsset] = useState<"points" | "tokens">("points");
+  const [asset, setAsset] = useState<"points" | "tokens">("tokens");
   const [amount, setAmount] = useState("100");
   const [reason, setReason] = useState("");
   const [roleToAssign, setRoleToAssign] = useState("support_admin");
@@ -108,7 +108,7 @@ export default function AdminConsole() {
       });
       if (rpcError) throw rpcError;
       setReason("");
-    }, parsed > 0 ? "Cadeau attribué et inscrit dans le journal." : "Correction du solde enregistrée.");
+    }, parsed > 0 ? "Opération enregistrée dans le journal." : "Correction du solde enregistrée.");
   }
 
   async function saveSetting(setting: Setting, value: unknown) {
@@ -184,18 +184,18 @@ export default function AdminConsole() {
             <div className="rounded-2xl border border-white/10 bg-[#1b2a22] p-5">
               <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-xl font-black">Comptes joueurs</h2><p className="mt-1 text-xs text-white/45">100 comptes maximum par recherche.</p></div><span className="text-xs text-white/40">{players.length} résultat(s)</span></div>
               <div className="mt-4 flex gap-2"><input value={search} onChange={(e)=>setSearch(e.target.value)} onKeyDown={(e)=>{if(e.key==="Enter")void run(()=>loadPlayers(search));}} placeholder="Rechercher un pseudo…" className="min-w-0 flex-1 rounded-xl border border-white/10 bg-black/20 px-3 py-3 text-sm outline-none focus:border-[#d2f178]"/><button disabled={busy} onClick={()=>void run(()=>loadPlayers(search))} className="rounded-xl bg-[#d2f178] px-4 text-sm font-black text-[#172219]">Chercher</button></div>
-              <div className="mt-4 space-y-2">{players.map((player)=><button key={player.id} onClick={()=>setSelected(player)} className={"w-full rounded-xl border p-3 text-left "+(selected?.id===player.id?"border-[#d2f178]/60 bg-[#d2f178]/10":"border-white/5 bg-black/15 hover:bg-white/[.05]")}><div className="flex items-center justify-between gap-3"><strong className="truncate text-sm">{player.username}</strong><span className="text-[10px] text-white/35">{player.roles?.length?player.roles.join(", "):"Joueur"}</span></div><div className="mt-2 flex flex-wrap gap-3 text-[11px] text-white/55"><span>⭐ {number.format(player.points)}</span><span>🪙 {number.format(player.tokens)}</span><span>💵 {number.format(player.cashXaf)} FCFA</span></div></button>)}</div>
+              <div className="mt-4 space-y-2">{players.map((player)=><button key={player.id} onClick={()=>setSelected(player)} className={"w-full rounded-xl border p-3 text-left "+(selected?.id===player.id?"border-[#d2f178]/60 bg-[#d2f178]/10":"border-white/5 bg-black/15 hover:bg-white/[.05]")}><div className="flex items-center justify-between gap-3"><strong className="truncate text-sm">{player.username}</strong><span className="text-[10px] text-white/35">{player.roles?.length?player.roles.join(", "):"Joueur"}</span></div><div className="mt-2 flex flex-wrap gap-3 text-[11px] text-white/55"><span>⭐ {number.format(player.points)}</span><span>🪙 {number.format(player.tokens)}</span></div></button>)}</div>
             </div>
             <div className="rounded-2xl border border-white/10 bg-[#1b2a22] p-5">
               <h2 className="text-xl font-black">Opérations sur le compte</h2>
               {!selected ? <p className="mt-4 text-sm text-white/45">Sélectionne un joueur pour gérer ses points cadeaux ou ses jetons de courtoisie.</p> : <>
                 <div className="mt-4 rounded-xl bg-black/20 p-4"><strong>{selected.username}</strong><p className="mt-1 break-all text-[10px] text-white/35">{selected.id}</p><div className="mt-3 grid grid-cols-2 gap-2 text-xs"><span>Points : <b>{number.format(selected.points)}</b></span><span>Jetons : <b>{number.format(selected.tokens)}</b></span></div></div>
                 {(has("wallet.points.adjust")||has("wallet.tokens.adjust")) ? <>
-                  <label className="mt-4 block text-xs font-bold text-white/55">Actif à ajuster</label><select value={asset} onChange={(e)=>setAsset(e.target.value as "points"|"tokens")} className="mt-2 w-full rounded-xl border border-white/10 bg-[#101a16] p-3 text-sm"><option value="points" disabled={!has("wallet.points.adjust")}>Points cadeaux</option><option value="tokens" disabled={!has("wallet.tokens.adjust")}>Jetons de courtoisie</option></select>
+                  <label className="mt-4 block text-xs font-bold text-white/55">Actif à ajuster</label><select value={asset} onChange={(e)=>setAsset(e.target.value as "points"|"tokens")} className="mt-2 w-full rounded-xl border border-white/10 bg-[#101a16] p-3 text-sm"><option value="points" disabled={!has("wallet.points.adjust")}>Points cadeaux</option><option value="tokens" disabled={!has("wallet.tokens.adjust")}>Jetons (crédit manuel après vérification)</option></select>
                   <label className="mt-4 block text-xs font-bold text-white/55">Quantité (+ pour offrir, − pour corriger)</label><input value={amount} onChange={(e)=>setAmount(e.target.value)} inputMode="numeric" className="mt-2 w-full rounded-xl border border-white/10 bg-[#101a16] p-3 text-sm"/>
                   <label className="mt-4 block text-xs font-bold text-white/55">Motif obligatoire</label><textarea value={reason} onChange={(e)=>setReason(e.target.value)} maxLength={180} placeholder="Ex. cadeau de bienvenue, correction après vérification…" className="mt-2 min-h-24 w-full rounded-xl border border-white/10 bg-[#101a16] p-3 text-sm"/>
                   <button disabled={busy||reason.trim().length<5} onClick={()=>void adjustBalance()} className="mt-4 w-full rounded-xl bg-[#d2f178] px-4 py-3 font-black text-[#172219]">{busy?"Traitement…":"Valider l’opération"}</button>
-                  <p className="mt-3 text-[11px] leading-5 text-white/40">Chaque mouvement est inscrit dans le portefeuille et le journal d’audit. Le solde FCFA ne peut pas être modifié ici.</p>
+                  <p className="mt-3 text-[11px] leading-5 text-white/40">Chaque mouvement est inscrit dans le portefeuille et le journal d’audit. Aucun solde d’argent réel n’est conservé dans le compte joueur.</p>
                 </> : <p className="mt-4 text-sm text-white/45">Ton rôle ne permet pas d’ajuster les soldes.</p>}
               </>}
             </div>
