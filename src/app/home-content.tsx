@@ -23,16 +23,8 @@ const steps = [
 ];
 
 export default function Home() {
-  const [roomCode, setRoomCode] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
-  const [notice, setNotice] = useState("");
 
-  function joinRoom(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setNotice(roomCode.trim().length >= 4
-      ? "Les salons multijoueurs arrivent bientôt. Reste dans le coin !"
-      : "Entre un code de salon d'au moins 4 caractères.");
-  }
 
   return (
     <main className="mboa-home min-h-screen overflow-hidden">
@@ -125,7 +117,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section id="modes" className="modes-section section-wrap"><div className="section-heading modes-heading"><div><div className="section-kicker">À TOI DE CHOISIR</div><h2>Invité ou membre <span>?</span></h2><p>Tu peux commencer sans compte. Et quand tu veux, tu rejoins le village avec ton compte Mboa Games.</p></div></div><div className="modes-grid"><article className="mode-card mode-guest"><div className="mode-card-icon">🎮</div><span className="mode-label">SANS INSCRIPTION</span><h3>Jouer en invité</h3><p>Entre directement dans les jeux disponibles, sans pseudo ni code PIN.</p><ul><li>Accéder aux jeux ouverts aux invités</li><li>Jouer gratuitement sur le même appareil</li><li>Découvrir les règles et tester les jeux</li><li>Pas de profil ni de sauvegarde entre appareils</li></ul><a className="mode-card-link" href="#jeux">Choisir un jeu <ArrowRight size={16}/></a></article><article className="mode-card mode-member"><div className="mode-card-icon">🏆</div><span className="mode-label">ESPACE PERSONNEL</span><h3>Créer un compte / Se connecter</h3><p>Un seul compte pour tous les jeux Mboa Games. Retrouve ton espace après chaque connexion.</p><ul><li>Un profil et un tableau de bord personnels</li><li>Suivi des points, jetons et résultats enregistrés</li><li>Historique des parties et statistiques</li><li>Accès aux salles, commentaires et messages communautaires lorsqu’ils seront activés</li><li>Achats de jetons et portefeuille lorsqu’ils seront sécurisés et disponibles</li></ul><div className="mode-card-actions"><Link href="/connexion?mode=register">Créer mon compte <ArrowRight size={16}/></Link><Link href="/connexion?mode=login">J’ai déjà un compte</Link></div></article></div><p className="modes-footnote">Les salles en ligne, le chat et les achats sont des fonctionnalités membres prévues ; elles ne sont pas encore toutes actives.</p></section>
+      <section id="modes" className="modes-section section-wrap"><div className="section-heading modes-heading"><div><div className="section-kicker">À TOI DE CHOISIR</div><h2>Invité ou membre <span>?</span></h2><p>Tu peux commencer sans compte. Et quand tu veux, tu rejoins le village avec ton compte Mboa Games.</p></div></div><div className="modes-grid"><article className="mode-card mode-guest"><div className="mode-card-icon">🎮</div><span className="mode-label">SANS INSCRIPTION</span><h3>Jouer en invité</h3><p>Entre directement dans les jeux disponibles, sans pseudo ni code PIN.</p><ul><li>Accéder aux jeux ouverts aux invités</li><li>Jouer gratuitement sur le même appareil</li><li>Découvrir les règles et tester les jeux</li><li>Pas de profil ni de sauvegarde entre appareils</li></ul><a className="mode-card-link" href="#jeux">Choisir un jeu <ArrowRight size={16}/></a></article><article className="mode-card mode-member"><div className="mode-card-icon">🏆</div><span className="mode-label">ESPACE PERSONNEL</span><h3>Créer un compte / Se connecter</h3><p>Un seul compte pour tous les jeux Mboa Games. Retrouve ton espace après chaque connexion.</p><ul><li>Un profil et un tableau de bord personnels</li><li>Suivi des points, jetons et résultats enregistrés</li><li>Historique des parties et statistiques</li><li>Accès aux salles, commentaires et messages communautaires lorsqu’ils seront activés</li><li>Achats de jetons et portefeuille lorsqu’ils seront sécurisés et disponibles</li></ul><div className="mode-card-actions"><Link href="/connexion?mode=register">Créer mon compte <ArrowRight size={16}/></Link><Link href="/connexion?mode=login">J’ai déjà un compte</Link></div></article></div><p className="modes-footnote">Les salles privées et le chat sont déjà disponibles sur Ludo, CHECK! et Le 2 Dès. Le branchement des coups à distance se poursuit jeu par jeu.</p></section>
 
       <section id="concept" className="concept-section">
         <div className="section-wrap concept-inner">
@@ -138,12 +130,11 @@ export default function Home() {
         <div className="community-card">
           <div className="community-pattern" aria-hidden="true">237&nbsp; 237&nbsp; 237&nbsp; 237</div>
           <div className="community-copy"><div className="section-kicker">LE VILLAGE S'AGRANDIT</div><h2>Ta place est<br />déjà réservée.</h2><p>Mboa Games grandit avec les joueurs. Reviens découvrir les nouveaux jeux et les prochaines fonctionnalités.</p><div className="community-note"><MessageCircle size={17} /> La suite se construit avec la communauté.</div></div>
-          <form className="room-box" onSubmit={joinRoom}>
-            <div className="room-icon">🔑</div><h3>Tu as un code de salon ?</h3><p>Entre ton code pour rejoindre la partie.</p>
-            <div className="room-input-row"><input aria-label="Code du salon" value={roomCode} onChange={(event) => { setRoomCode(event.target.value.toUpperCase()); setNotice(""); }} placeholder="EX. MBOA24" maxLength={10} /><button type="submit" aria-label="Valider le code"><ArrowRight size={19} /></button></div>
-            {notice && <div className="room-notice" role="status">{notice}</div>}
-            <small><Check size={13} /> Les salons en ligne arrivent progressivement.</small>
-          </form>
+          <div className="room-box">
+            <div className="room-icon">🔑</div><h3>Tu as un code de salon ?</h3><p>Ouvre le jeu correspondant et saisis le code dans son espace multijoueur.</p>
+            <div className="flex flex-wrap gap-2"><Link href="/ludo" className="button-primary">Ludo <ArrowUpRight size={15}/></Link><Link href="/cartes" className="button-quiet">CHECK! <ArrowUpRight size={15}/></Link><Link href="/des" className="button-quiet">Le 2 Dès <ArrowUpRight size={15}/></Link></div>
+            <small><Check size={13} /> Salles et chat déjà disponibles sur ces jeux.</small>
+          </div>
         </div>
       </section>
 
