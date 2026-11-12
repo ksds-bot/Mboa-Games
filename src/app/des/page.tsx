@@ -176,6 +176,17 @@ export default function DeuxDesGame() {
     }
   }
 
+  const resolveAction = useRef(resolveRound);
+  useEffect(() => { resolveAction.current = resolveRound; });
+
+  // Dès que tous les joueurs concernés ont lancé, le serveur a fourni les dés
+  // et le moteur compare automatiquement les résultats, sans bouton manuel.
+  useEffect(() => {
+    if (!complete || winner !== null || rollingPlayer !== null) return;
+    const timer = window.setTimeout(() => resolveAction.current(), 250);
+    return () => window.clearTimeout(timer);
+  }, [complete, winner, rollingPlayer, throws]);
+
   function handlePointerDown(event: React.PointerEvent<HTMLDivElement>) {
     pointerStart.current = { x: event.clientX, y: event.clientY };
   }
@@ -319,7 +330,7 @@ export default function DeuxDesGame() {
                   })}
                 </div>
               </section>
-              {complete && winner === null && rollingPlayer === null && <button onClick={resolveRound} className="mt-5 w-full rounded-xl bg-[#ff895c] px-5 py-4 font-black text-[#24150f]">Comparer les résultats <Trophy className="ml-2 inline" size={18} /></button>}
+              {complete && winner === null && rollingPlayer === null && <p className="mt-5 rounded-xl border border-[#c8f169]/20 bg-[#c8f169]/10 px-4 py-3 text-center text-sm font-bold text-[#d7f89b]" role="status"><Trophy className="mr-2 inline" size={17} />Comparaison automatique des résultats…</p>}
               {winner !== null && <div className="mt-6 rounded-2xl border border-[#c8f169]/40 bg-[#c8f169]/10 p-6 text-center"><Trophy className="mx-auto text-[#d7f89b]" size={42} /><h2 className="mt-3 text-2xl font-black">{names[winner]} gagne !</h2><p className="mt-2 text-sm text-white/60">Bravo, le village a son champion !</p><button onClick={() => { setStarted(false); setWinner(null); }} className="mt-5 rounded-xl bg-[#c8f169] px-6 py-3 font-black text-[#101b18]">Rejouer</button></div>}
             </>
           )}
