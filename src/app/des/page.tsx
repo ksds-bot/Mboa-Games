@@ -204,7 +204,7 @@ export default function DeuxDesGame() {
   return (
     <>
     <SiteHeader active="dice" />
-    <main className="min-h-screen bg-[#101b18] px-4 py-5 text-white sm:px-6">
+    <main className="mboa-app-surface min-h-screen bg-[#101b18] px-4 py-5 text-white sm:px-6">
       <style jsx global>{`
         @keyframes real-dice-roll {
           0% { transform: translate3d(0,0,0) rotateX(-24deg) rotateY(30deg) rotateZ(0deg); }
