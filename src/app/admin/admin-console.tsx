@@ -42,19 +42,19 @@ export default function AdminConsole() {
   const has = useCallback((permission: string) => !!snapshot?.permissions?.includes("*") || !!snapshot?.permissions?.includes(permission), [snapshot]);
 
   const loadSnapshot = useCallback(async () => {
-    const { data, error: rpcError } = await supabase.rpc("admin_console_snapshot");
+    const { data, error: rpcError } = await supabase.schema("private").rpc("admin_console_snapshot");
     if (rpcError) throw rpcError;
     setSnapshot(data as Snapshot);
   }, [supabase]);
 
   const loadPlayers = useCallback(async (query = search) => {
-    const { data, error: rpcError } = await supabase.rpc("admin_list_players", { p_search: query });
+    const { data, error: rpcError } = await supabase.schema("private").rpc("admin_list_players", { p_search: query });
     if (rpcError) throw rpcError;
     setPlayers((data ?? []) as Player[]);
   }, [search, supabase]);
 
   const loadAudit = useCallback(async () => {
-    const { data, error: rpcError } = await supabase.rpc("admin_list_audit_logs", { p_limit: 60 });
+    const { data, error: rpcError } = await supabase.schema("private").rpc("admin_list_audit_logs", { p_limit: 60 });
     if (rpcError) throw rpcError;
     setAudit((data ?? []) as Audit[]);
   }, [supabase]);
@@ -88,7 +88,7 @@ export default function AdminConsole() {
       if (has("users.read")) await loadPlayers();
       if (has("audit.read")) await loadAudit();
       if (selected && has("users.read")) {
-        const { data } = await supabase.rpc("admin_list_players", { p_search: selected.username });
+        const { data } = await supabase.schema("private").rpc("admin_list_players", { p_search: selected.username });
         const fresh = ((data ?? []) as Player[]).find((p) => p.id === selected.id);
         if (fresh) setSelected(fresh);
       }
@@ -113,7 +113,7 @@ export default function AdminConsole() {
     if (asset === "tokens" && parsed > 0) {
       if (paymentReference.trim().length < 4) { setError("La référence du paiement Orange Money / MTN MoMo est obligatoire."); return; }
       await run(async () => {
-        const { error: rpcError } = await supabase.rpc("admin_credit_tokens_after_payment", {
+        const { error: rpcError } = await supabase.schema("private").rpc("admin_credit_tokens_after_payment", {
           p_user_id: selected.id, p_amount: parsed, p_provider: paymentProvider,
           p_reference: paymentReference.trim(), p_note: reason.trim(),
         });
@@ -123,7 +123,7 @@ export default function AdminConsole() {
       return;
     }
     await run(async () => {
-      const { error: rpcError } = await supabase.rpc("admin_adjust_balance", {
+      const { error: rpcError } = await supabase.schema("private").rpc("admin_adjust_balance", {
         p_user_id: selected.id, p_asset: asset, p_amount: parsed, p_reason: reason.trim(),
       });
       if (rpcError) throw rpcError;
@@ -137,7 +137,7 @@ export default function AdminConsole() {
     if (!Number.isSafeInteger(parsed) || parsed < 1 || parsed > 100000000) { setError("Entre un montant de paiement valide en FCFA."); return; }
     if (payoutReference.trim().length < 4) { setError("La référence du transfert au gagnant est obligatoire."); return; }
     await run(async () => {
-      const { error: rpcError } = await supabase.rpc("admin_record_manual_prize_payout", {
+      const { error: rpcError } = await supabase.schema("private").rpc("admin_record_manual_prize_payout", {
         p_user_id: selected.id, p_amount_xaf: parsed, p_provider: payoutProvider,
         p_reference: payoutReference.trim(), p_game_type: payoutGameType,
         p_room_code: payoutRoomCode.trim() || null, p_note: payoutNote.trim(),
@@ -149,14 +149,14 @@ export default function AdminConsole() {
 
   async function saveSetting(setting: Setting, value: unknown) {
     await run(async () => {
-      const { error: rpcError } = await supabase.rpc("admin_update_setting", { p_key: setting.key, p_value: value });
+      const { error: rpcError } = await supabase.schema("private").rpc("admin_update_setting", { p_key: setting.key, p_value: value });
       if (rpcError) throw rpcError;
     }, "Paramètre enregistré.");
   }
 
   async function setRole(player: Player, roleKey: string, enabled: boolean) {
     await run(async () => {
-      const { error: rpcError } = await supabase.rpc("admin_set_user_role", { p_user_id: player.id, p_role_key: roleKey, p_enabled: enabled });
+      const { error: rpcError } = await supabase.schema("private").rpc("admin_set_user_role", { p_user_id: player.id, p_role_key: roleKey, p_enabled: enabled });
       if (rpcError) throw rpcError;
     }, enabled ? "Rôle attribué." : "Rôle retiré.");
   }
