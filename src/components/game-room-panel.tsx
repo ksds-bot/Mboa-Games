@@ -114,12 +114,9 @@ export default function GameRoomPanel({
     setBusy(true);
     setError("");
     try {
-      const { data, error: rpcError } = await supabase.rpc("mboa_join_room", { p_code: code });
+      const { data, error: rpcError } = await supabase.rpc("mboa_join_room", { p_code: code, p_game_type: gameType });
       if (rpcError) throw rpcError;
-      const room = data as { gameType: GameType; code: string };
-      if (room.gameType !== gameType) {
-        throw new Error(`Ce code correspond au jeu ${GAME_LABELS[room.gameType] ?? room.gameType}, pas à ${gameName ?? GAME_LABELS[gameType]}.`);
-      }
+      const room = data as { code: string };
       await openRoom(room.code);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Impossible de rejoindre cette salle.");
