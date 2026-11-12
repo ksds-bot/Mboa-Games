@@ -14,5 +14,7 @@ export default async function ConnexionPage({ searchParams }: ConnexionPageProps
   const { data: { user } } = await supabase.auth.getUser();
   if (user && !adminLogin) redirect("/profil");
   const initialMode = params.mode === "login" || adminLogin ? "login" : "register";
-  return <><SiteHeader /><main className="auth-page"><ConnexionForm initialMode={initialMode} redirectTo={redirectTo} /></main></>;
+  // Force a fresh form when switching between player registration and admin login.
+  // Otherwise React can preserve the previous "register" state across query-string navigation.
+  return <><SiteHeader /><main className="auth-page"><ConnexionForm key={adminLogin ? "admin-login" : "player-auth"} initialMode={initialMode} redirectTo={redirectTo} /></main></>;
 }
