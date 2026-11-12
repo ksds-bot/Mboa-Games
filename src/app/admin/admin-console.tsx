@@ -25,6 +25,14 @@ export default function AdminConsole() {
   const [asset, setAsset] = useState<"points" | "tokens">("tokens");
   const [amount, setAmount] = useState("100");
   const [reason, setReason] = useState("");
+  const [paymentProvider, setPaymentProvider] = useState<"orange_money"|"mtn_momo"|"other">("orange_money");
+  const [paymentReference, setPaymentReference] = useState("");
+  const [payoutAmount, setPayoutAmount] = useState("");
+  const [payoutReference, setPayoutReference] = useState("");
+  const [payoutProvider, setPayoutProvider] = useState<"orange_money"|"mtn_momo"|"other">("orange_money");
+  const [payoutGameType, setPayoutGameType] = useState("ludo");
+  const [payoutRoomCode, setPayoutRoomCode] = useState("");
+  const [payoutNote, setPayoutNote] = useState("");
   const [roleToAssign, setRoleToAssign] = useState("support_admin");
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -102,6 +110,18 @@ export default function AdminConsole() {
       setError("Précise un motif d’au moins 5 caractères pour garder une trace.");
       return;
     }
+    if (asset === "tokens" && parsed > 0) {
+      if (paymentReference.trim().length < 4) { setError("La référence du paiement Orange Money / MTN MoMo est obligatoire."); return; }
+      await run(async () => {
+        const { error: rpcError } = await supabase.rpc("admin_credit_tokens_after_payment", {
+          p_user_id: selected.id, p_amount: parsed, p_provider: paymentProvider,
+          p_reference: paymentReference.trim(), p_note: reason.trim(),
+        });
+        if (rpcError) throw rpcError;
+        setReason(""); setPaymentReference("");
+      }, "Paiement vérifié : jetons crédités et opération auditée.");
+      return;
+    }
     await run(async () => {
       const { error: rpcError } = await supabase.rpc("admin_adjust_balance", {
         p_user_id: selected.id, p_asset: asset, p_amount: parsed, p_reason: reason.trim(),
@@ -109,6 +129,22 @@ export default function AdminConsole() {
       if (rpcError) throw rpcError;
       setReason("");
     }, parsed > 0 ? "Opération enregistrée dans le journal." : "Correction du solde enregistrée.");
+  }
+
+  async function recordPayout() {
+    if (!selected) return;
+    const parsed = Number(payoutAmount);
+    if (!Number.isSafeInteger(parsed) || parsed < 1 || parsed > 100000000) { setError("Entre un montant de paiement valide en FCFA."); return; }
+    if (payoutReference.trim().length < 4) { setError("La référence du transfert au gagnant est obligatoire."); return; }
+    await run(async () => {
+      const { error: rpcError } = await supabase.rpc("admin_record_manual_prize_payout", {
+        p_user_id: selected.id, p_amount_xaf: parsed, p_provider: payoutProvider,
+        p_reference: payoutReference.trim(), p_game_type: payoutGameType,
+        p_room_code: payoutRoomCode.trim() || null, p_note: payoutNote.trim(),
+      });
+      if (rpcError) throw rpcError;
+      setPayoutAmount(""); setPayoutReference(""); setPayoutRoomCode(""); setPayoutNote("");
+    }, "Paiement manuel du gagnant enregistré et audité.");
   }
 
   async function saveSetting(setting: Setting, value: unknown) {
@@ -193,11 +229,30 @@ export default function AdminConsole() {
                 {(has("wallet.points.adjust")||has("wallet.tokens.adjust")) ? <>
                   <label className="mt-4 block text-xs font-bold text-white/55">Actif à ajuster</label><select value={asset} onChange={(e)=>setAsset(e.target.value as "points"|"tokens")} className="mt-2 w-full rounded-xl border border-white/10 bg-[#101a16] p-3 text-sm"><option value="points" disabled={!has("wallet.points.adjust")}>Points cadeaux</option><option value="tokens" disabled={!has("wallet.tokens.adjust")}>Jetons (crédit manuel après vérification)</option></select>
                   <label className="mt-4 block text-xs font-bold text-white/55">Quantité (+ pour offrir, − pour corriger)</label><input value={amount} onChange={(e)=>setAmount(e.target.value)} inputMode="numeric" className="mt-2 w-full rounded-xl border border-white/10 bg-[#101a16] p-3 text-sm"/>
-                  <label className="mt-4 block text-xs font-bold text-white/55">Motif obligatoire</label><textarea value={reason} onChange={(e)=>setReason(e.target.value)} maxLength={180} placeholder="Ex. cadeau de bienvenue, correction après vérification…" className="mt-2 min-h-24 w-full rounded-xl border border-white/10 bg-[#101a16] p-3 text-sm"/>
-                  <button disabled={busy||reason.trim().length<5} onClick={()=>void adjustBalance()} className="mt-4 w-full rounded-xl bg-[#d2f178] px-4 py-3 font-black text-[#172219]">{busy?"Traitement…":"Valider l’opération"}</button>
+                  {asset === "tokens" && Number(amount) > 0 && <>
+                    <label className="mt-4 block text-xs font-bold text-white/55">Paiement reçu via</label>
+                    <select value={paymentProvider} onChange={(e)=>setPaymentProvider(e.target.value as typeof paymentProvider)} className="mt-2 w-full rounded-xl border border-white/10 bg-[#101a16] p-3 text-sm"><option value="orange_money">Orange Money</option><option value="mtn_momo">MTN MoMo</option><option value="other">Autre</option></select>
+                    <label className="mt-4 block text-xs font-bold text-white/55">Référence du paiement vérifié</label>
+                    <input value={paymentReference} onChange={(e)=>setPaymentReference(e.target.value)} maxLength={120} placeholder="Référence de transaction" className="mt-2 w-full rounded-xl border border-white/10 bg-[#101a16] p-3 text-sm"/>
+                  </>}
+                  <label className="mt-4 block text-xs font-bold text-white/55">Motif / note obligatoire</label><textarea value={reason} onChange={(e)=>setReason(e.target.value)} maxLength={180} placeholder="Ex. paiement reçu et vérifié, correction…" className="mt-2 min-h-24 w-full rounded-xl border border-white/10 bg-[#101a16] p-3 text-sm"/>
+                  <button disabled={busy||reason.trim().length<5||(asset==="tokens"&&Number(amount)>0&&paymentReference.trim().length<4)} onClick={()=>void adjustBalance()} className="mt-4 w-full rounded-xl bg-[#d2f178] px-4 py-3 font-black text-[#172219]">{busy?"Traitement…":"Valider l’opération"}</button>
                   <p className="mt-3 text-[11px] leading-5 text-white/40">Chaque mouvement est inscrit dans le portefeuille et le journal d’audit. Aucun solde d’argent réel n’est conservé dans le compte joueur.</p>
                 </> : <p className="mt-4 text-sm text-white/45">Ton rôle ne permet pas d’ajuster les soldes.</p>}
               </>}
+                {has("wallet.tokens.adjust") && <>
+                  <div className="my-6 border-t border-white/10 pt-5">
+                    <h3 className="font-black">Enregistrer le paiement d’un gagnant</h3>
+                    <p className="mt-1 text-xs leading-5 text-white/45">Effectue d’abord le transfert Orange Money / MTN MoMo hors application, puis consigne sa référence ici. Aucun solde FCFA joueur n’est créé.</p>
+                    <label className="mt-3 block text-xs font-bold text-white/55">Montant payé (FCFA)</label><input value={payoutAmount} onChange={(e)=>setPayoutAmount(e.target.value)} inputMode="numeric" className="mt-2 w-full rounded-xl border border-white/10 bg-[#101a16] p-3 text-sm"/>
+                    <label className="mt-3 block text-xs font-bold text-white/55">Opérateur</label><select value={payoutProvider} onChange={(e)=>setPayoutProvider(e.target.value as typeof payoutProvider)} className="mt-2 w-full rounded-xl border border-white/10 bg-[#101a16] p-3 text-sm"><option value="orange_money">Orange Money</option><option value="mtn_momo">MTN MoMo</option><option value="other">Autre</option></select>
+                    <label className="mt-3 block text-xs font-bold text-white/55">Référence du transfert</label><input value={payoutReference} onChange={(e)=>setPayoutReference(e.target.value)} maxLength={120} className="mt-2 w-full rounded-xl border border-white/10 bg-[#101a16] p-3 text-sm"/>
+                    <label className="mt-3 block text-xs font-bold text-white/55">Jeu</label><select value={payoutGameType} onChange={(e)=>setPayoutGameType(e.target.value)} className="mt-2 w-full rounded-xl border border-white/10 bg-[#101a16] p-3 text-sm"><option value="ludo">Ludo</option><option value="cartes">CHECK!</option><option value="des">Le 2 Dès</option><option value="damier">Damier</option><option value="quiz">Quiz 237</option><option value="adages">Adages</option></select>
+                    <label className="mt-3 block text-xs font-bold text-white/55">Code de salle (facultatif)</label><input value={payoutRoomCode} onChange={(e)=>setPayoutRoomCode(e.target.value)} maxLength={20} className="mt-2 w-full rounded-xl border border-white/10 bg-[#101a16] p-3 text-sm"/>
+                    <label className="mt-3 block text-xs font-bold text-white/55">Note (facultatif)</label><textarea value={payoutNote} onChange={(e)=>setPayoutNote(e.target.value)} maxLength={180} className="mt-2 min-h-20 w-full rounded-xl border border-white/10 bg-[#101a16] p-3 text-sm"/>
+                    <button disabled={busy||Number(payoutAmount)<1||payoutReference.trim().length<4} onClick={()=>void recordPayout()} className="mt-4 w-full rounded-xl border border-[#d2f178]/30 bg-[#d2f178]/10 px-4 py-3 font-black text-[#d2f178]">Enregistrer le paiement effectué</button>
+                  </div>
+                </>}
             </div>
           </section>
         )}
