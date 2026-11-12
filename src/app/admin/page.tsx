@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import AdminConsole from "./admin-console";
 
 export const metadata = { title: "Administration · Mboa Games" };
+export const dynamic = "force-dynamic";
 
 export default async function AdminPage() {
   const supabase = await createClient();
