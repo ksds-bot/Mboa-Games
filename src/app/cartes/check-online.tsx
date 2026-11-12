@@ -23,6 +23,7 @@ type CheckState = {
   canPassAfterDraw?: boolean;
 };
 type Snapshot = { room: Room; players: RoomPlayer[] };
+type RoomMessage = { id: string; userId: string; username: string; content: string; createdAt: string };
 const SUITS: Suit[] = ["hearts", "diamonds", "clubs", "spades"];
 const SUIT_LABEL: Record<Suit, string> = { hearts: "Cœur", diamonds: "Carreau", clubs: "Trèfle", spades: "Pique" };
 const SUIT_SYMBOL: Record<Suit, string> = { hearts: "♥", diamonds: "♦", clubs: "♣", spades: "♠" };
@@ -44,16 +45,25 @@ export default function CheckOnline({ onBack }: { onBack: () => void }) {
   const [codeInput, setCodeInput] = useState("");
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
   const [game, setGame] = useState<CheckState | null>(null);
+  const [messages, setMessages] = useState<RoomMessage[]>([]);
+  const [draft, setDraft] = useState("");
   const [selectedAce, setSelectedAce] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("Crée une salle ou rejoins un ami avec son code.");
+
+  const refreshChat = useCallback(async (code: string) => {
+    const { data, error: chatError } = await supabase.rpc("mboa_chat_history", { p_code: code });
+    if (chatError) throw chatError;
+    setMessages((Array.isArray(data) ? [...data] : []).reverse() as RoomMessage[]);
+  }, [supabase]);
 
   const refresh = useCallback(async (code: string) => {
     const { data, error: roomError } = await supabase.rpc("mboa_room_snapshot", { p_code: code });
     if (roomError) throw roomError;
     const next = data as Snapshot;
     setSnapshot(next);
+    await refreshChat(code);
     if (next.room.status !== "waiting") {
       const { data: state, error: stateError } = await supabase.rpc("mboa_check_snapshot", { p_code: code });
       if (stateError) throw stateError;
@@ -61,7 +71,7 @@ export default function CheckOnline({ onBack }: { onBack: () => void }) {
     } else {
       setGame(null);
     }
-  }, [supabase]);
+  }, [supabase, refreshChat]);
 
   useEffect(() => {
     let alive = true;
@@ -81,9 +91,10 @@ export default function CheckOnline({ onBack }: { onBack: () => void }) {
       .on("postgres_changes", { event: "*", schema: "public", table: "room_players", filter: `room_id=eq.${roomId}` }, () => { void refresh(code); })
       .on("postgres_changes", { event: "*", schema: "public", table: "rooms", filter: `id=eq.${roomId}` }, () => { void refresh(code); })
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "game_sessions", filter: `room_id=eq.${roomId}` }, () => { void refresh(code); })
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "chat_messages", filter: `room_id=eq.${roomId}` }, () => { void refreshChat(code); })
       .subscribe();
     return () => { void supabase.removeChannel(channel); };
-  }, [snapshot?.room.id, snapshot?.room.code, refresh, supabase]);
+  }, [snapshot?.room.id, snapshot?.room.code, refresh, refreshChat, supabase]);
 
   async function run(task: () => Promise<void>) {
     setBusy(true);
@@ -120,6 +131,17 @@ export default function CheckOnline({ onBack }: { onBack: () => void }) {
       const { error: rpcError } = await supabase.rpc("mboa_set_ready", { p_code: snapshot.room.code, p_ready: !me?.ready });
       if (rpcError) throw rpcError;
       await refresh(snapshot.room.code);
+    });
+  }
+
+  async function sendMessage(value = draft) {
+    const content = value.trim();
+    if (!snapshot || !content || busy) return;
+    await run(async () => {
+      const { error: rpcError } = await supabase.rpc("mboa_send_chat", { p_code: snapshot.room.code, p_body: content });
+      if (rpcError) throw rpcError;
+      setDraft("");
+      await refreshChat(snapshot.room.code);
     });
   }
 
@@ -202,6 +224,14 @@ export default function CheckOnline({ onBack }: { onBack: () => void }) {
         </section>}
       </>}
 
+      {snapshot && <section className="mt-5 rounded-3xl border border-white/10 bg-[#192722] p-5">
+        <h2 className="font-black">💬 Le coin des joueurs</h2>
+        <div className="mt-3 flex max-h-56 flex-col gap-2 overflow-y-auto rounded-xl bg-black/20 p-3" aria-live="polite">
+          {messages.length ? messages.map(message => <div key={message.id} className={`max-w-[90%] rounded-xl px-3 py-2 text-xs ${message.userId === userId ? "self-end bg-[#c8f169]/15 text-[#e8f7c5]" : "self-start bg-white/[.07] text-white/80"}`}><p className="mb-1 text-[10px] font-black text-[#c8f169]">{message.userId === userId ? "Toi" : message.username}</p><p className="break-words">{message.content}</p></div>) : <p className="py-5 text-center text-xs text-white/35">Les premiers messages apparaîtront ici 👋</p>}
+        </div>
+        <div className="mt-3 flex gap-2"><input value={draft} maxLength={180} onChange={e => setDraft(e.target.value)} onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); void sendMessage(); } }} placeholder="Écris un petit message…" className="min-w-0 flex-1 rounded-xl border border-white/10 bg-[#0e1914] px-3 py-3 text-xs text-white outline-none focus:border-[#c8f169]/60"/><button disabled={busy || !draft.trim()} onClick={() => void sendMessage()} className="rounded-xl bg-[#c8f169] px-4 text-xs font-black text-[#102018] disabled:opacity-40">Envoyer</button></div>
+        <div className="mt-3 flex flex-wrap gap-2">{["Ça chauffe ! 🔥","Ekié ! 😂","On est ensemble 🤝"].map(message => <button key={message} disabled={busy} onClick={() => void sendMessage(message)} className="rounded-full border border-white/10 px-3 py-2 text-[10px] text-white/60 hover:bg-white/5">{message}</button>)}</div>
+      </section>}
       {notice && <p className="mt-5 text-center text-sm text-white/55" aria-live="polite">{notice}</p>}
       {error && <p role="alert" className="mt-4 rounded-xl border border-red-400/25 bg-red-400/10 p-3 text-sm text-red-200">{error}</p>}
       <p className="mt-8 text-center text-xs text-white/35">Mboa Games · CHECK! multijoueur · Les cartes privées restent visibles uniquement par leur propriétaire.</p>
