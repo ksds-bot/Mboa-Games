@@ -3,7 +3,7 @@
 import Link from "next/link";
 import SiteHeader from "@/components/site-header";
 import GameRoomPanel from "@/components/game-room-panel";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, Dices, RotateCcw, Trophy, Users, Hand } from "lucide-react";
 import { evaluateThrows, type DiceThrow, validateDiceConfig } from "@/lib/des-engine";
 
@@ -51,6 +51,7 @@ function Die({ face, rolling, delay = 0 }: { face: number | null; rolling: boole
 export default function DeuxDesGame() {
   const [diceCount, setDiceCount] = useState(2);
   const [playerCount, setPlayerCount] = useState(2);
+  const [machineMode, setMachineMode] = useState(false);
   const [millionFace, setMillionFace] = useState(1);
   const [names, setNames] = useState<string[]>(["Joueur 1", "Joueur 2"]);
   const [started, setStarted] = useState(false);
@@ -72,6 +73,12 @@ export default function DeuxDesGame() {
   const complete = activePlayers.length > 0 && throws.length === activePlayers.length;
   const turnPlayer = nextPlayer === undefined ? null : nextPlayer;
 
+  function changeMode(machine: boolean) {
+    setMachineMode(machine);
+    setPlayerCount(2);
+    setNames(machine ? ["Toi", "Mboma 🤖"] : ["Joueur 1", "Joueur 2"]);
+  }
+
   function updatePlayerCount(count: number) {
     setPlayerCount(count);
     setNames((current) => Array.from({ length: count }, (_, i) => current[i] || `Joueur ${i + 1}`));
@@ -87,7 +94,7 @@ export default function DeuxDesGame() {
       setHistory([]);
       setWinner(null);
       setRollingPlayer(null);
-      setMessage("La partie commence. Passe le téléphone au premier joueur.");
+      setMessage("La partie commence. {machineMode ? "Mboma jouera automatiquement." : "Passe le téléphone au premier joueur."}");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Configuration invalide.");
     }
@@ -139,6 +146,15 @@ export default function DeuxDesGame() {
       setMessage(error instanceof Error ? error.message : "Impossible de lancer les dés. Réessaie.");
     }
   }
+
+  const rollAction = useRef(rollForPlayer);
+  useEffect(() => { rollAction.current = rollForPlayer; });
+
+  useEffect(() => {
+    if (!machineMode || !started || turnPlayer !== 1 || winner !== null || complete || rollingPlayer !== null) return;
+    const timer = window.setTimeout(() => { void rollAction.current(1); }, 900);
+    return () => window.clearTimeout(timer);
+  }, [machineMode, started, turnPlayer, winner, complete, rollingPlayer, round]);
 
   function resolveRound() {
     if (!complete) return;
@@ -226,18 +242,25 @@ export default function DeuxDesGame() {
             <div className="mt-8 grid gap-5 lg:grid-cols-[1fr_.9fr]">
               <div className="rounded-2xl border border-white/10 bg-black/15 p-5">
                 <h2 className="text-lg font-black">Configuration de la table</h2>
+                <div className="mt-5">
+                  <p className="text-sm font-bold text-white/70">Mode de partie</p>
+                  <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                    <button type="button" onClick={() => changeMode(false)} className={`rounded-xl border px-3 py-3 text-sm font-bold transition ${!machineMode ? "border-[#c8f169]/60 bg-[#c8f169]/10 text-[#d7f89b]" : "border-white/10 bg-black/10 text-white/60"}`}>👥 Joueurs sur le même appareil</button>
+                    <button type="button" onClick={() => changeMode(true)} className={`rounded-xl border px-3 py-3 text-sm font-bold transition ${machineMode ? "border-[#c8f169]/60 bg-[#c8f169]/10 text-[#d7f89b]" : "border-white/10 bg-black/10 text-white/60"}`}>🤖 Toi contre Mboma</button>
+                  </div>
+                </div>
                 <div className="mt-5 grid grid-cols-2 gap-4">
                   <label className="text-sm font-semibold text-white/70">Nombre de dés
                     <select value={diceCount} onChange={(e) => setDiceCount(Number(e.target.value))} className="mt-2 w-full rounded-xl border border-white/10 bg-[#101b18] px-3 py-3 text-white"><option value={2}>2 dés</option><option value={3}>3 dés</option><option value={4}>4 dés</option></select>
                   </label>
                   <label className="text-sm font-semibold text-white/70">Nombre de joueurs
-                    <select value={playerCount} onChange={(e) => updatePlayerCount(Number(e.target.value))} className="mt-2 w-full rounded-xl border border-white/10 bg-[#101b18] px-3 py-3 text-white">{Array.from({ length: 9 }, (_, i) => i + 2).map((count) => <option key={count} value={count}>{count} joueurs</option>)}</select>
+                    <select value={playerCount} disabled={machineMode} onChange={(e) => updatePlayerCount(Number(e.target.value))} className="mt-2 w-full rounded-xl border border-white/10 bg-[#101b18] px-3 py-3 text-white disabled:opacity-60">{Array.from({ length: 9 }, (_, i) => i + 2).map((count) => <option key={count} value={count}>{count} joueurs</option>)}</select>
                   </label>
                   <label className="col-span-2 text-sm font-semibold text-white/70">Le chiffre du Million
                     <select value={millionFace} onChange={(e) => setMillionFace(Number(e.target.value))} className="mt-2 w-full rounded-xl border border-white/10 bg-[#101b18] px-3 py-3 text-white">{[1,2,3,4,5,6].map((face) => <option key={face} value={face}>{face} sur chaque dé ({diceCount} × {face})</option>)}</select>
                   </label>
                 </div>
-                <div className="mt-5"><p className="text-sm font-bold text-white/70">Noms des joueurs</p><div className="mt-3 grid gap-2 sm:grid-cols-2">{names.slice(0, playerCount).map((name, index) => <input key={index} value={name} onChange={(e) => setNames((current) => current.map((value, i) => i === index ? e.target.value : value))} maxLength={24} aria-label={`Nom du joueur ${index + 1}`} className="w-full rounded-xl border border-white/10 bg-[#101b18] px-3 py-3 text-sm text-white outline-none focus:border-[#c8f169]/60" />)}</div></div>
+                <div className="mt-5"><p className="text-sm font-bold text-white/70">{machineMode ? "Joueur et adversaire automatique" : "Noms des joueurs"}</p><div className="mt-3 grid gap-2 sm:grid-cols-2">{names.slice(0, playerCount).map((name, index) => <input key={index} value={name} onChange={(e) => setNames((current) => current.map((value, i) => i === index ? e.target.value : value))} maxLength={24} aria-label={`Nom du joueur ${index + 1}`} className="w-full rounded-xl border border-white/10 bg-[#101b18] px-3 py-3 text-sm text-white outline-none focus:border-[#c8f169]/60" />)}</div></div>
                 <button onClick={newGame} className="mt-6 w-full rounded-xl bg-[#c8f169] px-5 py-4 font-black text-[#101b18] transition hover:brightness-110">Créer la table et jouer <Dices className="ml-2 inline" size={18} /></button>
               </div>
               <aside className="rounded-2xl border border-[#c8f169]/15 bg-[#c8f169]/5 p-5">
