@@ -9,12 +9,6 @@ export const metadata = { title: "Mon tableau de bord" };
 export const dynamic = "force-dynamic";
 
 const number = new Intl.NumberFormat("fr-FR");
-const francs = new Intl.NumberFormat("fr-FR", {
-  style: "currency",
-  currency: "XAF",
-  maximumFractionDigits: 0,
-});
-
 function dateLabel(value: string) {
   return new Intl.DateTimeFormat("fr-FR", {
     dateStyle: "medium",
@@ -58,12 +52,12 @@ export default async function ProfilPage() {
     { data: transactions },
   ] = await Promise.all([
     supabase.from("profiles").select("display_name, username, created_at").eq("id", user.id).maybeSingle(),
-    supabase.from("player_wallets").select("points_balance, tokens_balance, cash_balance_xaf").eq("user_id", user.id).maybeSingle(),
+    supabase.from("player_wallets").select("points_balance, tokens_balance").eq("user_id", user.id).maybeSingle(),
     supabase.from("player_game_history").select("id, game_type, outcome, score, points_delta, tokens_delta, created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(8),
     supabase.from("player_game_history").select("outcome, points_delta, tokens_delta", { count: "exact" }).eq("user_id", user.id),
     supabase.from("player_game_history").select("id", { count: "exact", head: true }).eq("user_id", user.id).eq("outcome", "won"),
     supabase.from("player_game_history").select("id", { count: "exact", head: true }).eq("user_id", user.id).eq("outcome", "lost"),
-    supabase.from("player_wallet_transactions").select("id, asset, direction, amount, status, description, created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(5),
+    supabase.from("player_wallet_transactions").select("id, asset, direction, amount, status, description, created_at").eq("user_id", user.id).neq("asset", "cash_xaf").order("created_at", { ascending: false }).limit(5),
   ]);
 
   if (!profile?.username) {
@@ -84,7 +78,6 @@ export default async function ProfilPage() {
   const winRate = totalGames > 0 ? Math.round((wins / totalGames) * 100) : 0;
   const points = wallet?.points_balance ?? 0;
   const tokens = wallet?.tokens_balance ?? 0;
-  const cash = wallet?.cash_balance_xaf ?? 0;
 
   return (
     <>
@@ -125,12 +118,6 @@ export default async function ProfilPage() {
                 <strong>{number.format(tokens)}</strong>
                 <small>Jetons disponibles</small>
               </article>
-              <article className="dashboard-balance-card balance-cash">
-                <span className="dashboard-card-icon">💳</span>
-                <p>Mon solde FCFA</p>
-                <strong>{francs.format(cash)}</strong>
-                <small>Portefeuille financier</small>
-              </article>
             </div>
           </section>
 
@@ -169,13 +156,12 @@ export default async function ProfilPage() {
           </div>
 
           <section id="portefeuille" className="dashboard-panel dashboard-wallet-panel">
-            <div className="dashboard-panel-heading"><div><p className="dashboard-kicker">POINTS, JETONS ET ARGENT</p><h2>Mon portefeuille</h2></div><span className="dashboard-coming">Achats bientôt disponibles</span></div>
+            <div className="dashboard-panel-heading"><div><p className="dashboard-kicker">POINTS ET JETONS</p><h2>Mon portefeuille</h2></div></div>
             <div className="dashboard-wallet-grid">
               <div><span>⭐</span><strong>{number.format(points)}</strong><small>Points</small></div>
               <div><span>🪙</span><strong>{number.format(tokens)}</strong><small>Jetons</small></div>
-              <div><span>💵</span><strong>{francs.format(cash)}</strong><small>Solde FCFA</small></div>
             </div>
-            <p className="dashboard-wallet-note">Les soldes sont séparés. Les achats de jetons, dépôts et retraits en argent réel ne sont pas encore activés.</p>
+            <p className="dashboard-wallet-note">Les points servent à suivre ta progression. Les jetons servent aux mises des parties compatibles. Les recharges sont vérifiées manuellement par l’administration.</p>
             <div className="dashboard-transactions">
               <h3>Derniers mouvements</h3>
               {transactions && transactions.length > 0 ? transactions.map((transaction) => (
