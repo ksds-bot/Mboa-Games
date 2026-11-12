@@ -10,7 +10,7 @@ export default function ProfileActions() {
   async function signOut() {
     setBusy(true);
     const supabase = createClient();
-    await supabase.auth.signOut();
+    await supabase.auth.signOut({ scope: "local" });
     router.replace("/connexion");
     router.refresh();
   }
