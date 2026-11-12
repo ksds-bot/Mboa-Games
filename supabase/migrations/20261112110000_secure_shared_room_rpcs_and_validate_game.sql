@@ -16,7 +16,7 @@ end; $$;
 
 create or replace function private.mboa_join_room(p_code text,p_game_type text default null)
 returns jsonb language plpgsql security definer set search_path = '' as $$
-declare v_user uuid:=auth.uid(); v_room public.rooms%rowtype; v_seat integer; v_expected text:=nullif(lower(trim(coalesce(p_game_type,'')),'');
+declare v_user uuid:=auth.uid(); v_room public.rooms%rowtype; v_seat integer; v_expected text:=nullif(lower(trim(coalesce(p_game_type,''))),'');
 begin
  if v_user is null then raise exception 'Connecte-toi pour rejoindre une salle.'; end if;
  select * into v_room from public.rooms r where r.code=upper(trim(coalesce(p_code,''))) for update;
