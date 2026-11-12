@@ -22,7 +22,7 @@ export default function ConnexionForm({ initialMode = "register", redirectTo = "
     if (redirectTo !== "/admin") return;
     let active = true;
     void (async () => {
-      const { error: signOutError } = await createClient().auth.signOut();
+      const { error: signOutError } = await createClient().auth.signOut({ scope: "local" });
       if (!active) return;
       if (signOutError) setError("Impossible de fermer la session précédente. Recharge cette page avant de continuer.");
       else setAuthReady(true);
