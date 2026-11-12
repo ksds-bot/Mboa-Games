@@ -185,7 +185,7 @@ export default function CheckOnline({ onBack }: { onBack: () => void }) {
 
   if (!authReady) return <div className="mx-auto max-w-5xl p-8 text-white">Chargement…</div>;
 
-  return <main className="min-h-screen bg-[#0c1713] px-3 py-5 text-white sm:px-6">
+  return <main className="mboa-app-surface min-h-screen bg-[#0c1713] px-3 py-5 text-white sm:px-6">
     <div className="mx-auto max-w-5xl">
       <button onClick={onBack} className="text-sm font-bold text-white/60 hover:text-white">← Retour au mode Mboma</button>
       <header className="mt-5 flex flex-wrap items-center justify-between gap-3">
