@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import SiteHeader from "@/components/site-header";
+import GameRoomPanel from "@/components/game-room-panel";
 import { useMemo, useRef, useState } from "react";
 import { ArrowLeft, Dices, RotateCcw, Trophy, Users, Hand } from "lucide-react";
 import { evaluateThrows, type DiceThrow, validateDiceConfig } from "@/lib/des-engine";
@@ -220,6 +221,7 @@ export default function DeuxDesGame() {
             <div className="rounded-2xl bg-[#c8f169]/10 p-4 text-[#d7f89b]"><Dices size={34} /></div>
           </div>
 
+          <GameRoomPanel gameType="des" gameName="Le 2 Dès" maxPlayers={8} />
           {!started ? (
             <div className="mt-8 grid gap-5 lg:grid-cols-[1fr_.9fr]">
               <div className="rounded-2xl border border-white/10 bg-black/15 p-5">
