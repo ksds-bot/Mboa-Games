@@ -170,10 +170,10 @@ export default function AdminConsole() {
     return groups;
   }, [settings]);
 
-  if (loading) return <main className="min-h-screen bg-[#101a16] p-8 text-white"><p>Chargement de l’espace administrateur…</p></main>;
+  if (loading) return <main className="mboa-app-surface min-h-screen bg-[#101a16] p-8 text-white"><p>Chargement de l’espace administrateur…</p></main>;
 
   if (!snapshot) return (
-    <main className="min-h-screen bg-[#101a16] px-4 py-12 text-white">
+    <main className="mboa-app-surface min-h-screen bg-[#101a16] px-4 py-12 text-white">
       <div className="mx-auto max-w-xl rounded-3xl border border-white/10 bg-[#1b2a22] p-8 text-center">
         <div className="text-4xl">🔐</div>
         <h1 className="mt-4 text-2xl font-black">Accès réservé à l’administration</h1>
@@ -184,7 +184,7 @@ export default function AdminConsole() {
   );
 
   return (
-    <main className="min-h-screen bg-[#101a16] px-3 py-5 text-white sm:px-6">
+    <main className="mboa-app-surface min-h-screen bg-[#101a16] px-3 py-5 text-white sm:px-6">
       <div className="mx-auto max-w-7xl">
         <header className="mb-6 flex flex-wrap items-center justify-between gap-4">
           <div><p className="text-xs font-black tracking-[.25em] text-[#d2f178]">MBOA GAMES · CONTRÔLE CENTRAL</p><h1 className="mt-2 text-3xl font-black sm:text-4xl">Administration</h1><p className="mt-2 text-sm text-white/50">Gestion sécurisée des joueurs, soldes, jeux et paramètres.</p></div>
