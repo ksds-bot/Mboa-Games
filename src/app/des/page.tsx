@@ -94,7 +94,7 @@ export default function DeuxDesGame() {
       setHistory([]);
       setWinner(null);
       setRollingPlayer(null);
-      setMessage("La partie commence. {machineMode ? "Mboma jouera automatiquement." : "Passe le téléphone au premier joueur."}");
+      setMessage(machineMode ? "La partie commence. Mboma jouera automatiquement." : "La partie commence. Passe le téléphone au premier joueur.");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Configuration invalide.");
     }
