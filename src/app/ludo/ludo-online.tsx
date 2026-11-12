@@ -425,7 +425,7 @@ export default function LudoOnline() {
   const secondsLeft=game?.turnDeadlineAt?Math.max(0,Math.ceil((new Date(game.turnDeadlineAt).getTime()-clockNow)/1000)):15;
 
   return (
-    <main className="min-h-screen bg-[#101a16] px-3 pb-10 pt-5 text-white sm:px-6">
+    <main className="mboa-app-surface min-h-screen bg-[#101a16] px-3 pb-10 pt-5 text-white sm:px-6">
       <style jsx global>{`
         .ludo-glass{background:linear-gradient(145deg,#1d3027,#14221c);border:1px solid #ffffff16;border-radius:28px;box-shadow:0 22px 70px #0004}
         .ludo-btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;border-radius:15px;padding:14px 18px;font-weight:900;background:#d2f178;color:#172219;transition:transform .18s,filter .18s}
