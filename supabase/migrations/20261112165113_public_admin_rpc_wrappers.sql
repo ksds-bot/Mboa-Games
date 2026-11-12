@@ -1,0 +1,25 @@
+-- Public PostgREST entry points. SECURITY INVOKER wrappers delegate to guarded private functions.
+create or replace function public.admin_console_snapshot() returns jsonb language sql security invoker set search_path='' as $$ select private.admin_console_snapshot(); $$;
+create or replace function public.admin_list_players(p_search text default '') returns jsonb language sql security invoker set search_path='' as $$ select private.admin_list_players(p_search); $$;
+create or replace function public.admin_list_audit_logs(p_limit integer default 50) returns jsonb language sql security invoker set search_path='' as $$ select private.admin_list_audit_logs(p_limit); $$;
+create or replace function public.admin_adjust_balance(p_user_id uuid,p_asset text,p_amount bigint,p_reason text) returns jsonb language sql security invoker set search_path='' as $$ select private.admin_adjust_balance(p_user_id,p_asset,p_amount,p_reason); $$;
+create or replace function public.admin_credit_tokens_after_payment(p_user_id uuid,p_amount bigint,p_provider text,p_reference text,p_note text default '') returns jsonb language sql security invoker set search_path='' as $$ select private.admin_credit_tokens_after_payment(p_user_id,p_amount,p_provider,p_reference,p_note); $$;
+create or replace function public.admin_record_manual_prize_payout(p_user_id uuid,p_amount_xaf bigint,p_provider text,p_reference text,p_game_type text,p_room_code text default null,p_note text default '') returns jsonb language sql security invoker set search_path='' as $$ select private.admin_record_manual_prize_payout(p_user_id,p_amount_xaf,p_provider,p_reference,p_game_type,p_room_code,p_note); $$;
+create or replace function public.admin_update_setting(p_key text,p_value jsonb) returns jsonb language sql security invoker set search_path='' as $$ select private.admin_update_setting(p_key,p_value); $$;
+create or replace function public.admin_set_user_role(p_user_id uuid,p_role_key text,p_enabled boolean) returns jsonb language sql security invoker set search_path='' as $$ select private.admin_set_user_role(p_user_id,p_role_key,p_enabled); $$;
+revoke all on function public.admin_console_snapshot() from public,anon;
+revoke all on function public.admin_list_players(text) from public,anon;
+revoke all on function public.admin_list_audit_logs(integer) from public,anon;
+revoke all on function public.admin_adjust_balance(uuid,text,bigint,text) from public,anon;
+revoke all on function public.admin_credit_tokens_after_payment(uuid,bigint,text,text,text) from public,anon;
+revoke all on function public.admin_record_manual_prize_payout(uuid,bigint,text,text,text,text,text) from public,anon;
+revoke all on function public.admin_update_setting(text,jsonb) from public,anon;
+revoke all on function public.admin_set_user_role(uuid,text,boolean) from public,anon;
+grant execute on function public.admin_console_snapshot() to authenticated;
+grant execute on function public.admin_list_players(text) to authenticated;
+grant execute on function public.admin_list_audit_logs(integer) to authenticated;
+grant execute on function public.admin_adjust_balance(uuid,text,bigint,text) to authenticated;
+grant execute on function public.admin_credit_tokens_after_payment(uuid,bigint,text,text,text) to authenticated;
+grant execute on function public.admin_record_manual_prize_payout(uuid,bigint,text,text,text,text,text) to authenticated;
+grant execute on function public.admin_update_setting(text,jsonb) to authenticated;
+grant execute on function public.admin_set_user_role(uuid,text,boolean) to authenticated;
