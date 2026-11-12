@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import AdminCredentialForm from "./credential-form";
 
 export const metadata = { title: "Sécuriser le compte administrateur · Mboa Games" };
+export const dynamic = "force-dynamic";
 
 export default async function AdminSecurityPage() {
   const supabase = await createClient();
