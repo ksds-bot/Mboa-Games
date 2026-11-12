@@ -1,0 +1,301 @@
+-- CHECK! online multiplayer, server-authoritative rules and private card hands.
+create table if not exists private.check_game_states (
+  room_id uuid primary key references public.rooms(id) on delete cascade,
+  state jsonb not null,
+  updated_at timestamptz not null default now()
+);
+revoke all on private.check_game_states from public, anon, authenticated;
+
+CREATE OR REPLACE FUNCTION private.check_public_state(p_state jsonb, p_user uuid)
+ RETURNS jsonb
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO ''
+AS $function$
+  select jsonb_set(
+    jsonb_set(
+      jsonb_set(
+        p_state,
+        '{players}',
+        coalesce((
+          select jsonb_agg(
+            jsonb_build_object(
+              'id', player->>'id',
+              'name', player->>'name',
+              'hand', case when player->>'id'=p_user::text then player->'hand' else '[]'::jsonb end,
+              'cardCount', jsonb_array_length(player->'hand')
+            ) order by ord
+          )
+          from jsonb_array_elements(p_state->'players') with ordinality as x(player,ord)
+        ), '[]'::jsonb),
+        true
+      ),
+      '{drawPile}', '[]'::jsonb, true
+    ),
+    '{drawCount}', to_jsonb(jsonb_array_length(p_state->'drawPile')), true
+  );
+$function$
+
+
+CREATE OR REPLACE FUNCTION private.mboa_check_action(p_code text, p_action jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+declare
+  v_user uuid:=auth.uid();
+  v_room_id uuid;
+  v_state jsonb;
+  v_players jsonb;
+  v_hand jsonb;
+  v_new_hand jsonb;
+  v_draw jsonb;
+  v_discards jsonb;
+  v_card jsonb;
+  v_top jsonb;
+  v_player jsonb;
+  v_idx integer;
+  v_next integer;
+  v_rank text;
+  v_suit text;
+  v_action text:=coalesce(p_action->>'type','');
+  v_card_id text:=p_action->>'cardId';
+  v_chosen text:=p_action->>'chosenSuit';
+  v_draw_count integer;
+  v_i integer;
+  v_advance integer:=1;
+begin
+  if v_user is null then raise exception 'Connecte-toi pour jouer.'; end if;
+  select r.id into v_room_id from public.rooms r join public.room_players rp on rp.room_id=r.id and rp.user_id=v_user
+  where r.code=upper(trim(p_code)) and r.game_type='cartes' and r.status='playing';
+  if v_room_id is null then raise exception 'Tu ne fais pas partie de cette partie active.'; end if;
+  select state into v_state from private.check_game_states where room_id=v_room_id for update;
+  if v_state is null or v_state->>'status'<>'playing' then raise exception 'La partie est terminée ou indisponible.'; end if;
+  v_players:=v_state->'players';
+  v_idx:=(v_state->>'currentPlayerIndex')::integer;
+  v_player:=v_players->v_idx;
+  if (v_player->>'id')::uuid<>v_user then raise exception 'Ce n’est pas ton tour.'; end if;
+  v_hand:=v_player->'hand'; v_draw:=v_state->'drawPile'; v_discards:=v_state->'discardPile';
+  v_top:=v_discards->(jsonb_array_length(v_discards)-1);
+
+  if v_action='play' then
+    select value into v_card from jsonb_array_elements(v_hand) where value->>'id'=v_card_id;
+    if v_card is null then raise exception 'Cette carte ne se trouve pas dans ta main.'; end if;
+    v_rank:=v_card->>'rank'; v_suit:=v_card->>'suit';
+    if (v_state->>'pendingDraw')::integer>0 then
+      if v_rank<>'2' then raise exception 'Seul un 2 peut répondre à cette pénalité.'; end if;
+    elsif v_rank<>'A' and v_suit<>coalesce(v_state->>'chosenSuit',v_top->>'suit') and v_rank<>v_top->>'rank' then
+      raise exception 'Carte invalide : elle doit suivre la couleur ou la valeur.';
+    end if;
+    if v_rank='A' and (v_chosen is null or v_chosen not in ('hearts','diamonds','clubs','spades')) then raise exception 'Choisis une couleur après avoir posé un As.'; end if;
+    if v_rank<>'A' and v_chosen is not null then raise exception 'On ne choisit une couleur qu’avec un As.'; end if;
+    select coalesce(jsonb_agg(value),'[]'::jsonb) into v_new_hand from jsonb_array_elements(v_hand) where value->>'id'<>v_card_id;
+    v_players:=jsonb_set(v_players,array[v_idx::text,'hand'],v_new_hand,true);
+    v_discards:=v_discards||jsonb_build_array(v_card);
+    v_state:=jsonb_set(v_state,'{players}',v_players,true);
+    v_state:=jsonb_set(v_state,'{discardPile}',v_discards,true);
+    v_state:=jsonb_set(v_state,'{chosenSuit}',case when v_rank='A' then to_jsonb(v_chosen) else 'null'::jsonb end,true);
+    v_state:=jsonb_set(v_state,'{pendingDraw}',to_jsonb(case when v_rank='2' then (v_state->>'pendingDraw')::integer+2 else 0 end),true);
+    v_state:=jsonb_set(v_state,'{skipNext}',to_jsonb(v_rank in ('8','J')),true);
+    v_state:=jsonb_set(v_state,'{lastAction}',to_jsonb((v_player->>'name')||' a posé '||v_rank||' de '||v_suit||'.'),true);
+    if jsonb_array_length(v_new_hand)=0 then
+      v_state:=jsonb_set(v_state,'{status}','"finished"'::jsonb,true);
+      v_state:=jsonb_set(v_state,'{winnerId}',to_jsonb(v_user::text),true);
+      v_state:=jsonb_set(v_state,'{checkRequiredFor}','null'::jsonb,true);
+    elsif jsonb_array_length(v_new_hand)=1 then
+      v_state:=jsonb_set(v_state,'{checkRequiredFor}',to_jsonb(v_user::text),true);
+    else
+      v_state:=jsonb_set(v_state,'{checkRequiredFor}','null'::jsonb,true);
+      v_advance:=case when v_rank in ('8','J') then 2 else 1 end;
+    end if;
+  elsif v_action='draw' then
+    if v_state->>'checkRequiredFor' is not null then raise exception 'Annonce CHECK! avant de continuer.'; end if;
+    if (v_state->>'pendingDraw')::integer=0 and exists(
+      select 1 from jsonb_array_elements(v_hand) c
+      where c->>'rank'='A' or c->>'suit'=coalesce(v_state->>'chosenSuit',v_top->>'suit') or c->>'rank'=v_top->>'rank'
+    ) then raise exception 'Tu as une carte jouable : tu dois la poser avant de piocher.'; end if;
+    v_draw_count:=greatest(1,(v_state->>'pendingDraw')::integer);
+    if jsonb_array_length(v_draw)<v_draw_count then raise exception 'La pioche est vide. Fin de manche à gérer.'; end if;
+    v_card:=v_draw->0;
+    for v_i in 0..v_draw_count-1 loop v_hand:=v_hand||jsonb_build_array(v_draw->v_i); end loop;
+    v_draw:=case when v_draw_count=1 then v_draw-0 else (select coalesce(jsonb_agg(value order by ord),'[]'::jsonb) from jsonb_array_elements(v_draw) with ordinality d(value,ord) where ord>v_draw_count) end;
+    v_players:=jsonb_set(v_players,array[v_idx::text,'hand'],v_hand,true);
+    v_state:=jsonb_set(v_state,'{players}',v_players,true);
+    v_state:=jsonb_set(v_state,'{drawPile}',v_draw,true);
+    v_state:=jsonb_set(v_state,'{pendingDraw}','0'::jsonb,true);
+    v_state:=jsonb_set(v_state,'{lastAction}',to_jsonb((v_player->>'name')||' pioche '||v_draw_count||' carte(s).'),true);
+    if v_draw_count>1 or v_card is null or ((v_card->>'rank'<>'A') and (v_card->>'suit'<>coalesce(v_state->>'chosenSuit',v_top->>'suit')) and (v_card->>'rank'<>v_top->>'rank')) then v_advance:=1;
+    else v_advance:=0; end if;
+  elsif v_action='announce' then
+    if v_state->>'checkRequiredFor' is distinct from v_user::text then raise exception 'Aucune annonce CHECK! ne t’est demandée.'; end if;
+    v_state:=jsonb_set(v_state,'{checkRequiredFor}','null'::jsonb,true);
+    v_state:=jsonb_set(v_state,'{lastAction}',to_jsonb((v_player->>'name')||' a annoncé CHECK!'),true);
+    v_advance:=1;
+  elsif v_action='finish' then
+    if v_state->>'checkRequiredFor' is distinct from v_user::text then raise exception 'Aucun tour ne doit être terminé ainsi.'; end if;
+    if jsonb_array_length(v_draw)<2 then raise exception 'La pioche ne contient pas assez de cartes pour la pénalité.'; end if;
+    v_hand:=v_hand||jsonb_build_array(v_draw->0)||jsonb_build_array(v_draw->1);
+    v_draw:=case when jsonb_array_length(v_draw)=2 then '[]'::jsonb else (select coalesce(jsonb_agg(value order by ord),'[]'::jsonb) from jsonb_array_elements(v_draw) with ordinality d(value,ord) where ord>2) end;
+    v_players:=jsonb_set(v_players,array[v_idx::text,'hand'],v_hand,true);
+    v_state:=jsonb_set(v_state,'{players}',v_players,true);
+    v_state:=jsonb_set(v_state,'{drawPile}',v_draw,true);
+    v_state:=jsonb_set(v_state,'{checkRequiredFor}','null'::jsonb,true);
+    v_state:=jsonb_set(v_state,'{lastAction}',to_jsonb((v_player->>'name')||' a oublié CHECK! et pioche 2 cartes.'),true);
+    v_advance:=1;
+  else raise exception 'Action CHECK! inconnue.';
+  end if;
+
+  if v_advance>0 and v_state->>'status'='playing' then
+    v_next:=mod(v_idx+v_advance,jsonb_array_length(v_players));
+    v_state:=jsonb_set(v_state,'{currentPlayerIndex}',to_jsonb(v_next),true);
+    v_state:=jsonb_set(v_state,'{turnNumber}',to_jsonb((v_state->>'turnNumber')::integer+1),true);
+    v_state:=jsonb_set(v_state,'{skipNext}','false'::jsonb,true);
+  end if;
+  update private.check_game_states set state=v_state,updated_at=now() where room_id=v_room_id;
+  update public.game_sessions set state=private.check_public_state(v_state,null),
+    current_turn_user_id=case when v_state->>'status'='playing' then (v_players->(v_state->>'currentPlayerIndex')::integer->>'id')::uuid else null end,
+    updated_at=now() where room_id=v_room_id;
+  if v_state->>'status'='finished' then update public.rooms set status='finished',updated_at=now() where id=v_room_id; end if;
+  return private.check_public_state(v_state,v_user);
+end;
+$function$
+
+
+CREATE OR REPLACE FUNCTION private.mboa_check_snapshot(p_code text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+declare
+  v_user uuid:=auth.uid();
+  v_room_id uuid;
+  v_state jsonb;
+begin
+  if v_user is null then raise exception 'Connecte-toi pour consulter la partie.'; end if;
+  select r.id into v_room_id
+  from public.rooms r join public.room_players rp on rp.room_id=r.id and rp.user_id=v_user
+  where r.code=upper(trim(p_code)) and r.game_type='cartes';
+  if v_room_id is null then raise exception 'Tu ne fais pas partie de cette salle CHECK!.'; end if;
+  select state into v_state from private.check_game_states where room_id=v_room_id;
+  if v_state is null then return null; end if;
+  return private.check_public_state(v_state,v_user);
+end;
+$function$
+
+
+CREATE OR REPLACE FUNCTION private.mboa_check_start(p_code text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+declare
+  v_user uuid := auth.uid();
+  v_room public.rooms%rowtype;
+  v_players jsonb;
+  v_deck jsonb;
+  v_draw jsonb;
+  v_card jsonb;
+  v_discards jsonb := '[]'::jsonb;
+  v_i integer;
+  v_j integer;
+  v_hand jsonb;
+  v_state jsonb;
+begin
+  if v_user is null then raise exception 'Connecte-toi pour lancer CHECK!.'; end if;
+  select * into v_room from public.rooms where code=upper(trim(p_code)) and game_type='cartes' for update;
+  if not found then raise exception 'Salle CHECK! introuvable.'; end if;
+  if v_room.host_id<>v_user then raise exception 'Seul le créateur peut lancer la partie.'; end if;
+  if v_room.status<>'waiting' then raise exception 'Cette partie a déjà commencé.'; end if;
+  if v_room.max_players<>2 then raise exception 'CHECK! en ligne se joue actuellement à deux joueurs.'; end if;
+  if (select count(*) from public.room_players where room_id=v_room.id)<>2 then raise exception 'Il faut exactement deux joueurs.'; end if;
+  if exists(select 1 from public.room_players where room_id=v_room.id and not is_ready) then raise exception 'Les deux joueurs doivent être prêts.'; end if;
+
+  select jsonb_agg(jsonb_build_object('id',rp.user_id,'name',coalesce(p.username,p.display_name,'Joueur'),'hand','[]'::jsonb) order by rp.seat)
+  into v_players
+  from public.room_players rp left join public.profiles p on p.id=rp.user_id
+  where rp.room_id=v_room.id;
+
+  select jsonb_agg(jsonb_build_object('id',s.suit||'-'||r.rank,'suit',s.suit,'rank',r.rank) order by random())
+  into v_deck
+  from (values ('hearts'),('diamonds'),('clubs'),('spades')) s(suit)
+  cross join (values ('A'),('2'),('3'),('4'),('5'),('6'),('7'),('8'),('9'),('10'),('J'),('Q'),('K')) r(rank);
+
+  for v_i in 0..1 loop
+    v_hand:='[]'::jsonb;
+    for v_j in 0..6 loop
+      v_hand:=v_hand||jsonb_build_array(v_deck->(v_i*7+v_j));
+    end loop;
+    v_players:=jsonb_set(v_players,array[v_i::text,'hand'],v_hand,true);
+  end loop;
+
+  select coalesce(jsonb_agg(value order by ord),'[]'::jsonb)
+  into v_draw
+  from jsonb_array_elements(v_deck) with ordinality as d(value,ord)
+  where ord>14;
+  loop
+    v_card:=v_draw->0;
+    if v_card is null then raise exception 'Impossible de préparer la pioche.'; end if;
+    if v_card->>'rank' not in ('A','2','8','J') then exit; end if;
+    v_draw:=(v_draw-0)||jsonb_build_array(v_card);
+  end loop;
+  v_discards:=jsonb_build_array(v_card);
+  v_draw:=v_draw-0;
+
+  v_state:=jsonb_build_object('players',v_players,'drawPile',v_draw,'discardPile',v_discards,
+    'currentPlayerIndex',0,'direction',1,'pendingDraw',0,'chosenSuit',null,'skipNext',false,
+    'checkRequiredFor',null,'status','playing','winnerId',null,'turnNumber',1,'lastAction','La partie commence.');
+  update public.rooms set status='playing',updated_at=now() where id=v_room.id;
+  insert into public.game_sessions(room_id,state,current_turn_user_id)
+  values(v_room.id,private.check_public_state(v_state,null),(v_players->0->>'id')::uuid)
+  on conflict(room_id) do update set state=excluded.state,current_turn_user_id=excluded.current_turn_user_id,updated_at=now();
+  insert into private.check_game_states(room_id,state) values(v_room.id,v_state)
+  on conflict(room_id) do update set state=excluded.state,updated_at=now();
+  return private.check_public_state(v_state,v_user);
+end;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.mboa_check_action(p_code text, p_action jsonb)
+ RETURNS jsonb
+ LANGUAGE sql
+ SET search_path TO ''
+AS $function$ select private.mboa_check_action(p_code,p_action); $function$
+
+
+CREATE OR REPLACE FUNCTION public.mboa_check_snapshot(p_code text)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE
+ SET search_path TO ''
+AS $function$ select private.mboa_check_snapshot(p_code); $function$
+
+
+CREATE OR REPLACE FUNCTION public.mboa_check_start(p_code text)
+ RETURNS jsonb
+ LANGUAGE sql
+ SET search_path TO ''
+AS $function$ select private.mboa_check_start(p_code); $function$
+
+
+revoke all on function private.check_public_state(jsonb,uuid) from public,anon,authenticated;
+revoke all on function private.mboa_check_start(text) from public,anon,authenticated;
+revoke all on function private.mboa_check_snapshot(text) from public,anon,authenticated;
+revoke all on function private.mboa_check_action(text,jsonb) from public,anon,authenticated;
+grant execute on function private.mboa_check_start(text) to authenticated;
+grant execute on function private.mboa_check_snapshot(text) to authenticated;
+grant execute on function private.mboa_check_action(text,jsonb) to authenticated;
+revoke all on function public.mboa_check_start(text) from public,anon;
+revoke all on function public.mboa_check_snapshot(text) from public,anon;
+revoke all on function public.mboa_check_action(text,jsonb) from public,anon;
+grant execute on function public.mboa_check_start(text) to authenticated;
+grant execute on function public.mboa_check_snapshot(text) to authenticated;
+grant execute on function public.mboa_check_action(text,jsonb) to authenticated;
+
+do $$ begin
+  if not exists(select 1 from pg_publication_tables where pubname='supabase_realtime' and schemaname='public' and tablename='game_sessions') then
+    alter publication supabase_realtime add table public.game_sessions;
+  end if;
+end $$;
