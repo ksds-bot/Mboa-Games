@@ -15,7 +15,7 @@ const suitSymbol: Record<Suit, string> = { hearts: "♥", diamonds: "♦", clubs
 const suitColor: Record<Suit, string> = { hearts: "text-rose-600", diamonds: "text-rose-600", clubs: "text-slate-950", spades: "text-slate-950" };
 
 function startGame() {
-  return createGame({ players: [{ id: HUMAN, name: "Toi" }, { id: BOT, name: "Le Mboma 🤖" }] });
+  return createGame({ players: [{ id: HUMAN, name: "Toi" }, { id: BOT, name: "L’ordinateur 🤖" }] });
 }
 
 function chooseBotCard(state: GameState, level: "facile" | "moyen" | "difficile"): Card | undefined {
@@ -179,11 +179,11 @@ export default function CheckGame() {
           <div className="flex items-center gap-2 rounded-full border border-[#c8f169]/20 bg-[#c8f169]/10 px-4 py-2 text-xs font-bold text-[#d7f89b]">🎮 Partie gratuite · Test</div>
         </header>
 
-        <div className="mt-5 flex flex-wrap gap-2"><button onClick={() => setMode("bot")} className="rounded-xl bg-[#c8f169] px-4 py-2 text-xs font-black text-[#102018]">🤖 Contre Mboma</button><button onClick={() => setMode("online")} className="rounded-xl border border-[#c8f169]/35 bg-[#c8f169]/10 px-4 py-2 text-xs font-black text-[#d7f89b]">🌍 Jouer à distance</button></div>
+        <div className="mt-5 flex flex-wrap gap-2"><button onClick={() => setMode("bot")} className="rounded-xl bg-[#c8f169] px-4 py-2 text-xs font-black text-[#102018]">🤖 Contre l’ordinateur</button><button onClick={() => setMode("online")} className="rounded-xl border border-[#c8f169]/35 bg-[#c8f169]/10 px-4 py-2 text-xs font-black text-[#d7f89b]">🌍 Jouer à distance</button></div>
         {!game ? (
           <section className="mt-8 rounded-3xl border border-white/10 bg-[#192722] p-6 sm:p-8">
             <div className="text-5xl">🃏</div><h2 className="mt-4 text-2xl font-black">Prêt à jouer ?</h2>
-            <p className="mt-2 max-w-xl text-sm leading-6 text-white/60">Affronte le Mboma, teste les cartes spéciales et essaie de vider ta main. Aucun compte, aucun point et aucun paiement requis.</p>
+            <p className="mt-2 max-w-xl text-sm leading-6 text-white/60">Affronte l’ordinateur, teste les cartes spéciales et essaie de vider ta main. Aucun compte, aucun point et aucun paiement requis.</p>
             <label className="mt-6 block text-sm font-bold text-white/75">Niveau de l’ordinateur</label>
             <select value={level} onChange={(e) => setLevel(e.target.value as typeof level)} className="mt-2 w-full max-w-xs rounded-xl border border-white/15 bg-[#101b18] px-4 py-3 text-white"><option value="facile">Facile</option><option value="moyen">Moyen</option><option value="difficile">Difficile</option></select>
             <button onClick={reset} className="mt-6 block rounded-xl bg-[#c8f169] px-6 py-3 font-black text-[#101b18] hover:bg-[#d7f89b]">Lancer une partie →</button>
@@ -203,7 +203,7 @@ export default function CheckGame() {
                 {game.chosenSuit && <div className="rounded-xl bg-black/25 px-3 py-2 text-xs font-bold">Couleur : {suitLabel[game.chosenSuit]} {suitSymbol[game.chosenSuit]}</div>}
               </div>
               {game.pendingDraw > 0 && <div className="mx-auto mb-4 w-fit rounded-full bg-orange-400/15 px-4 py-2 text-sm font-black text-orange-200">⚠️ Pénalité : +{game.pendingDraw} cartes · seul un 2 peut répondre</div>}
-              <div className="rounded-2xl bg-black/20 p-3 text-center text-sm text-white/85" role="status">{busy ? "Le Mboma réfléchit…" : message}</div>
+              <div className="rounded-2xl bg-black/20 p-3 text-center text-sm text-white/85" role="status">{busy ? "L’ordinateur réfléchit…" : message}</div>
             </section>
 
             <section className="mt-5 rounded-3xl border border-white/10 bg-[#192722] p-4 sm:p-6">
@@ -217,9 +217,9 @@ export default function CheckGame() {
               {selectedAce && <div className="mt-4 rounded-2xl border border-[#c8f169]/30 bg-black/20 p-4"><p className="text-sm font-bold">Choisis la couleur demandée :</p><div className="mt-3 flex flex-wrap gap-2">{SUITS.map((suit) => <button key={suit} onClick={() => { const card = human?.hand.find((c) => c.id === selectedAce); if (card) playHumanCard(card, suit); }} className="rounded-xl bg-white px-4 py-2 font-black text-slate-900">{suitSymbol[suit]} {suitLabel[suit]}</button>)}</div></div>}
               {game.checkRequiredFor === HUMAN && <div className="mt-4 flex flex-wrap gap-2"><button onClick={announce} className="rounded-xl bg-[#c8f169] px-5 py-3 font-black text-[#101b18]">📣 ANNONCER CHECK !</button><button onClick={() => { try { finishHumanTurn(game); setMessage("Tu as oublié CHECK : pénalité de 2 cartes !"); } catch (e) { setMessage(e instanceof Error ? e.message : "Erreur"); } }} className="rounded-xl border border-white/20 px-4 py-3 text-sm font-bold">Oublier (test pénalité)</button></div>}
               {mustDecideDraw && <button onClick={passAfterDraw} className="mt-4 rounded-xl border border-white/20 px-4 py-3 text-sm font-bold">Passer mon tour</button>}
-              {!isHumanTurn && game.status === "playing" && <p className="mt-4 text-sm font-bold text-[#c8f169]">Le Mboma joue…</p>}
+              {!isHumanTurn && game.status === "playing" && <p className="mt-4 text-sm font-bold text-[#c8f169]">L’ordinateur joue…</p>}
             </section>
-            {winner && <section className="mt-5 rounded-3xl border border-[#c8f169]/40 bg-[#c8f169]/10 p-6 text-center"><div className="text-5xl">🏆</div><h2 className="mt-3 text-2xl font-black">{winner.id === HUMAN ? "Tu as gagné !" : "Le Mboma a gagné !"}</h2><p className="mt-2 text-sm text-white/65">Partie terminée · {game.turnNumber} tours joués</p><button onClick={reset} className="mt-5 rounded-xl bg-[#c8f169] px-6 py-3 font-black text-[#101b18]">Rejouer</button></section>}
+            {winner && <section className="mt-5 rounded-3xl border border-[#c8f169]/40 bg-[#c8f169]/10 p-6 text-center"><div className="text-5xl">🏆</div><h2 className="mt-3 text-2xl font-black">{winner.id === HUMAN ? "Tu as gagné !" : "L’ordinateur a gagné !"}</h2><p className="mt-2 text-sm text-white/65">Partie terminée · {game.turnNumber} tours joués</p><button onClick={reset} className="mt-5 rounded-xl bg-[#c8f169] px-6 py-3 font-black text-[#101b18]">Rejouer</button></section>}
           </>
         )}
         <section className="mt-8 rounded-3xl border border-white/10 bg-[#192722] p-5 sm:p-6">
