@@ -15,11 +15,10 @@ export default function ConnexionForm({ initialMode = "register", redirectTo = "
   const [pin, setPin] = useState("");
   const [pinConfirmation, setPinConfirmation] = useState("");
   const [busy, setBusy] = useState(false);
-  const [authReady, setAuthReady] = useState(redirectTo !== "/admin");
+  const [authReady, setAuthReady] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (redirectTo !== "/admin") return;
     let active = true;
     void (async () => {
       const { error: signOutError } = await createClient().auth.signOut({ scope: "local" });
@@ -28,7 +27,7 @@ export default function ConnexionForm({ initialMode = "register", redirectTo = "
       else setAuthReady(true);
     })();
     return () => { active = false; };
-  }, [redirectTo]);
+  }, []);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -166,7 +165,7 @@ export default function ConnexionForm({ initialMode = "register", redirectTo = "
 
       {error && <p className="auth-error" role="alert">{error}</p>}
 
-      {redirectTo === "/admin" && <p className="auth-hint">Connexion indépendante requise. La session joueur déjà ouverte sur cet appareil sera fermée avant cette connexion.</p>}
+      <p className="auth-hint">Pour protéger les comptes, la session précédente sur cet appareil est fermée à l’ouverture de cette page. Saisis toujours le pseudo et le PIN du compte à utiliser.</p>
       {redirectTo !== "/admin" && <button
         className="auth-mode-switch"
         type="button"
