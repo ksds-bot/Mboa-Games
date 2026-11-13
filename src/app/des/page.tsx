@@ -76,7 +76,7 @@ export default function DeuxDesGame() {
   function changeMode(machine: boolean) {
     setMachineMode(machine);
     setPlayerCount(2);
-    setNames(machine ? ["Toi", "Mboma 🤖"] : ["Joueur 1", "Joueur 2"]);
+    setNames(machine ? ["Toi", "Ordinateur 🤖"] : ["Joueur 1", "Joueur 2"]);
   }
 
   function updatePlayerCount(count: number) {
@@ -257,7 +257,7 @@ export default function DeuxDesGame() {
                   <p className="text-sm font-bold text-white/70">Mode de partie</p>
                   <div className="mt-2 grid gap-2 sm:grid-cols-2">
                     <button type="button" onClick={() => changeMode(false)} className={`rounded-xl border px-3 py-3 text-sm font-bold transition ${!machineMode ? "border-[#c8f169]/60 bg-[#c8f169]/10 text-[#d7f89b]" : "border-white/10 bg-black/10 text-white/60"}`}>👥 Joueurs sur le même appareil</button>
-                    <button type="button" onClick={() => changeMode(true)} className={`rounded-xl border px-3 py-3 text-sm font-bold transition ${machineMode ? "border-[#c8f169]/60 bg-[#c8f169]/10 text-[#d7f89b]" : "border-white/10 bg-black/10 text-white/60"}`}>🤖 Toi contre Mboma</button>
+                    <button type="button" onClick={() => changeMode(true)} className={`rounded-xl border px-3 py-3 text-sm font-bold transition ${machineMode ? "border-[#c8f169]/60 bg-[#c8f169]/10 text-[#d7f89b]" : "border-white/10 bg-black/10 text-white/60"}`}>🤖 Toi contre l’ordinateur</button>
                   </div>
                 </div>
                 <div className="mt-5 grid grid-cols-2 gap-4">
