@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 type ConnexionPageProps = { searchParams: Promise<{ mode?: string; next?: string }> };
 
 function safeReturnPath(value?: string) {
-  if (!value || !value.startsWith("/") || value.startsWith("//") || value.includes("\\\\")) return "/profil";
+  if (!value || !value.startsWith("/") || value.startsWith("//") || value.includes("\\")) return "/profil";
   return value;
 }
 
