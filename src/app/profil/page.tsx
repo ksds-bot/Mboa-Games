@@ -40,7 +40,7 @@ function outcomeLabel(value: string) {
 export default async function ProfilPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/connexion");
+  if (!user) redirect("/connexion?mode=login&next=%2Fprofil");
 
   const [
     { data: profile },
