@@ -71,7 +71,10 @@ function legalMoves(board: Piece[], player: Player): Move[] {
     const found = capturePaths(board, from, player);
     for (const move of found) if (move.captures.length) captures.push({ ...move, from });
   }
-  if (captures.length) return captures;
+  if (captures.length) {
+    const maximum = Math.max(...captures.map(move => move.captures.length));
+    return captures.filter(move => move.captures.length === maximum);
+  }
   const moves: Move[] = [];
   for (let from = 0; from < 64; from++) {
     const piece = board[from];
