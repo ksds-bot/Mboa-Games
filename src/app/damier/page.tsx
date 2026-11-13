@@ -178,7 +178,6 @@ export default function DamierPage() {
     setMessage("Dernier coup annulé.");
   };
 
-  const currentMoves = moves.filter(move => move.from === selected);
   const captureRequired = moves.some(move => move.captures.length > 0);
   const greenCount = countPieces(board, 1), redCount = countPieces(board, 2);
 
