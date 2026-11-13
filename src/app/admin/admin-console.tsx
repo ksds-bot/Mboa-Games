@@ -116,8 +116,8 @@ export default function AdminConsole() {
       if (paymentReference.trim().length < 4) { setError("La référence du paiement Orange Money / MTN MoMo est obligatoire."); return; }
       await run(async () => {
         const { error: rpcError } = await supabase.rpc("admin_credit_tokens_after_payment", {
-          p_user_id: selected.id, p_amount: parsed, p_provider: paymentProvider,
-          p_reference: paymentReference.trim(), p_note: reason.trim(),
+          p_user_id: selected.id, p_amount: parsed, p_paid_amount_xaf: Number(paidAmountXaf),
+          p_provider: paymentProvider, p_reference: paymentReference.trim(), p_note: reason.trim(),
         });
         if (rpcError) throw rpcError;
         setReason(""); setPaymentReference(""); setPaidAmountXaf("");
