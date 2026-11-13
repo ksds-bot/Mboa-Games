@@ -165,7 +165,7 @@ export default function DamierPage() {
         setHistory(previous => [...previous, { board, turn: 2 }]);
         setBoard(applyMove(board, move));
         setTurn(1);
-        setMessage(move.captures.length ? `Mboma fait ${move.captures.length} prise(s). À toi !` : "Mboma a joué. À toi !");
+        setMessage(move.captures.length ? `l’ordinateur fait ${move.captures.length} prise(s). À toi !` : "l’ordinateur a joué. À toi !");
       }
       setThinking(false);
     }, 650);
@@ -249,7 +249,7 @@ export default function DamierPage() {
               <div className="flex items-center gap-2 text-sm font-black"><Bot className="text-[#16834b]" size={18}/> Mode de jeu</div>
               <div className="mt-4 grid grid-cols-2 gap-2">
                 <button onClick={() => restart("bot")} className={`rounded-xl border p-3 text-left transition ${mode === "bot" ? "border-[#16834b] bg-[#eaf6e9]" : "border-[#e3eae0] bg-[#fbfcf8] hover:border-[#b6cdb7]"}`}>
-                  <Bot size={19} className="mb-2 text-[#16834b]"/><strong className="block text-xs">Vs Mboma</strong><span className="mt-1 block text-[10px] text-[#7c8d7e]">Solo contre l'IA</span>
+                  <Bot size={19} className="mb-2 text-[#16834b]"/><strong className="block text-xs">Vs l’ordinateur</strong><span className="mt-1 block text-[10px] text-[#7c8d7e]">Solo contre l’ordinateur</span>
                 </button>
                 <button onClick={() => restart("local")} className={`rounded-xl border p-3 text-left transition ${mode === "local" ? "border-[#16834b] bg-[#eaf6e9]" : "border-[#e3eae0] bg-[#fbfcf8] hover:border-[#b6cdb7]"}`}>
                   <Users size={19} className="mb-2 text-[#e36b3c]"/><strong className="block text-xs">À deux</strong><span className="mt-1 block text-[10px] text-[#7c8d7e]">Même appareil</span>
@@ -257,7 +257,7 @@ export default function DamierPage() {
               </div>
               <div className="mt-4 rounded-2xl bg-[#fff8e6] p-4">
                 <div className="text-[10px] font-black uppercase tracking-[.15em] text-[#a36a1e]">État de la partie</div>
-                <p className="mt-2 text-sm font-bold leading-6 text-[#49614b]">{winner ? winner === 1 ? "🏆 Les verts remportent la partie !" : "🏆 Les rouges remportent la partie !" : thinking ? "🤖 Mboma réfléchit à son prochain coup…" : message}</p>
+                <p className="mt-2 text-sm font-bold leading-6 text-[#49614b]">{winner ? winner === 1 ? "🏆 Les verts remportent la partie !" : "🏆 Les rouges remportent la partie !" : thinking ? "🤖 l’ordinateur réfléchit à son prochain coup…" : message}</p>
               </div>
             </div>
             <div className="rounded-[24px] border border-[#dce8dc] bg-white p-5 shadow-[0_12px_35px_rgba(35,74,43,.07)]">
