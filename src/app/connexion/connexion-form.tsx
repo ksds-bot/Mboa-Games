@@ -8,7 +8,7 @@ import Link from "next/link";
 
 type Mode = "register" | "login";
 
-export default function ConnexionForm({ initialMode = "register", redirectTo = "/profil" }: { initialMode?: Mode; redirectTo?: "/profil" | "/admin" }) {
+export default function ConnexionForm({ initialMode = "register", redirectTo = "/profil" }: { initialMode?: Mode; redirectTo?: string }) {
   const router = useRouter();
   const [mode, setMode] = useState<Mode>(initialMode);
   const [username, setUsername] = useState("");
