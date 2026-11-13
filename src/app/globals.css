@@ -740,12 +740,14 @@ body { background:#fff9ef; color:#17251d; }
 
 /* MBOA GAMES — unified bright theme for every game and admin screen */
 .mboa-app-surface { min-height:100vh; color:#183c28 !important; background:radial-gradient(ellipse at 7% 2%,rgba(32,185,107,.10),transparent 34%),radial-gradient(ellipse at 94% 8%,rgba(255,193,61,.16),transparent 32%),linear-gradient(180deg,#fffdf8 0%,#f2faf1 100%) !important; }
-.mboa-app-surface [class*="bg-[#101a16]"],.mboa-app-surface [class*="bg-[#101b18]"],.mboa-app-surface [class*="bg-[#0c1713]"],.mboa-app-surface [class*="bg-[#0e1914]"],.mboa-app-surface [class*="bg-[#192722]"],.mboa-app-surface [class*="bg-[#17251e]"],.mboa-app-surface [class*="bg-[#1b2a22]"] { background:linear-gradient(145deg,#fff 0%,#f6fbf4 100%) !important; border-color:#dce8dc !important; color:#183c28 !important; box-shadow:0 12px 32px rgba(32,78,44,.07); }
+.mboa-app-surface [class*="bg-[#101a16]"],.mboa-app-surface [class*="bg-[#101b18]"],.mboa-app-surface [class*="bg-[#0c1712]"],.mboa-app-surface [class*="bg-[#0c1713]"],.mboa-app-surface [class*="bg-[#0e1914]"],.mboa-app-surface [class*="bg-[#192722]"],.mboa-app-surface [class*="bg-[#17251e]"],.mboa-app-surface [class*="bg-[#1b2a22]"] { background:linear-gradient(145deg,#fff 0%,#f6fbf4 100%) !important; border-color:#dce8dc !important; color:#183c28 !important; box-shadow:0 12px 32px rgba(32,78,44,.07); }
 .mboa-app-surface [class*="bg-black/"] { background:rgba(22,131,75,.055) !important; }
 .mboa-app-surface [class*="bg-white/"] { background:rgba(22,131,75,.06) !important; }
 .mboa-app-surface [class*="border-white/"] { border-color:#dce8dc !important; }
 .mboa-app-surface [class~="text-white"],.mboa-app-surface [class*="text-white/"] { color:#496653 !important; }
-.mboa-app-surface [class*="text-[#d7f89b]"],.mboa-app-surface [class*="text-[#c8f169]"],.mboa-app-surface [class*="text-[#d2f178]"] { color:#16834b !important; }
+.mboa-app-surface [class*="text-[#d7f89b]"],.mboa-app-surface [class*="text-[#c8f169]"],.mboa-app-surface [class*="text-[#d2f178]"],.mboa-app-surface [class*="text-[#e8f7c5]"] { color:#16834b !important; }
+.mboa-app-surface [class*="text-amber-200"],.mboa-app-surface [class*="text-amber-300"],.mboa-app-surface [class*="text-orange-200"] { color:#a84b18 !important; }
+.mboa-app-surface [class*="text-red-200"] { color:#b42318 !important; }
 .mboa-app-surface [class*="bg-[radial-gradient(ellipse_at_center"] { background:radial-gradient(ellipse at center,#e8f8e8 0%,#d9f0dc 58%,#c9e8d0 100%) !important; border-color:#b9dfc2 !important; }
 .mboa-app-surface [class*="bg-[#173b2b]"] { background:#eaf7e9 !important; border-color:#a9d5b0 !important; color:#183c28 !important; }
 .mboa-app-surface input,.mboa-app-surface textarea,.mboa-app-surface select { color:#183c28; }
