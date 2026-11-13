@@ -9,6 +9,7 @@ type Piece = 0 | 1 | 2 | 3 | 4;
 type Player = 1 | 2;
 type Move = { from: number; to: number; captures: number[]; path: number[] };
 type Mode = "bot" | "local";
+type HistoryEntry = { board: Piece[]; turn: Player };
 
 const SIZE = 8;
 const other = (player: Player): Player => player === 1 ? 2 : 1;
@@ -114,7 +115,7 @@ export default function DamierPage() {
   const [turn, setTurn] = useState<Player>(1);
   const [selected, setSelected] = useState<number | null>(null);
   const [mode, setMode] = useState<Mode>("bot");
-  const [history, setHistory] = useState<Piece[][]>([]);
+  const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [message, setMessage] = useState("À toi de jouer. Sélectionne un pion vert.");
   const [thinking, setThinking] = useState(false);
 
@@ -137,7 +138,7 @@ export default function DamierPage() {
   }, [mode]);
 
   const play = useCallback((move: Move) => {
-    setHistory(previous => [...previous, board]);
+    setHistory(previous => [...previous, { board, turn }]);
     setBoard(applyMove(board, move));
     setSelected(null);
     setTurn(other(turn));
@@ -161,7 +162,7 @@ export default function DamierPage() {
       const choices = legalMoves(board, 2).slice().sort((a, b) => b.captures.length - a.captures.length);
       if (choices[0]) {
         const move = choices[0];
-        setHistory(previous => [...previous, board]);
+        setHistory(previous => [...previous, { board, turn: 2 }]);
         setBoard(applyMove(board, move));
         setTurn(1);
         setMessage(move.captures.length ? `Mboma fait ${move.captures.length} prise(s). À toi !` : "Mboma a joué. À toi !");
@@ -173,10 +174,11 @@ export default function DamierPage() {
 
   const undo = () => {
     if (!history.length || thinking) return;
-    const previous = history[history.length - 1];
-    setBoard(previous);
-    setHistory(items => items.slice(0, -1));
-    setTurn(1);
+    const stepsToUndo = mode === "bot" ? Math.min(2, history.length) : 1;
+    const previous = history[history.length - stepsToUndo];
+    setBoard(previous.board);
+    setHistory(items => items.slice(0, -stepsToUndo));
+    setTurn(previous.turn);
     setSelected(null);
     setMessage("Dernier coup annulé.");
   };
