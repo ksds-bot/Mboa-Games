@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import SiteHeader from "@/components/site-header";
 import ProfileActions from "./profile-actions";
 import UsernameSetup from "./username-setup";
+import TokenTopupForm from "./token-topup-form";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata = { title: "Mon tableau de bord" };
@@ -162,6 +163,7 @@ export default async function ProfilPage() {
               <div><span>🪙</span><strong>{number.format(tokens)}</strong><small>Jetons</small></div>
             </div>
             <p className="dashboard-wallet-note">Les points servent à suivre ta progression. Les jetons servent aux mises des parties compatibles. Les recharges sont vérifiées manuellement par l’administration.</p>
+            <TokenTopupForm />
             <div className="dashboard-transactions">
               <h3>Derniers mouvements</h3>
               {transactions && transactions.length > 0 ? transactions.map((transaction) => (
