@@ -9,6 +9,7 @@ type Setting = { key: string; category: string; label: string; description: stri
 type Summary = { players: number; rooms: number; active_rooms: number; points_in_circulation: number; tokens_in_circulation: number };
 type Snapshot = { roles: Role[]; permissions: string[]; roleCatalog: Role[]; summary: Summary; settings: Setting[] };
 type Player = { id: string; username: string; displayName: string; createdAt: string; points: number; tokens: number; roles: string[] };
+type TopupRequest = { id: string; user_id: string; username: string; paid_amount_xaf: number; tokens_requested: number; provider: "orange_money"|"mtn_momo"; payment_reference: string; status: string; admin_note: string; created_at: string };
 type Audit = { id: number; action: string; actor: string; targetUserId: string | null; entityType: string; entityId: string | null; details: Record<string, unknown>; createdAt: string };
 
 const number = new Intl.NumberFormat("fr-FR");
@@ -19,6 +20,7 @@ export default function AdminConsole() {
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
   const [players, setPlayers] = useState<Player[]>([]);
   const [audit, setAudit] = useState<Audit[]>([]);
+  const [topupRequests, setTopupRequests] = useState<TopupRequest[]>([]);
   const [search, setSearch] = useState("");
   const [tab, setTab] = useState("overview");
   const [selected, setSelected] = useState<Player | null>(null);
@@ -60,6 +62,12 @@ export default function AdminConsole() {
     setAudit((data ?? []) as Audit[]);
   }, [supabase]);
 
+  const loadTopupRequests = useCallback(async () => {
+    const { data, error: rpcError } = await supabase.rpc("mboa_list_token_topup_requests");
+    if (rpcError) throw rpcError;
+    setTopupRequests((data ?? []) as TopupRequest[]);
+  }, [supabase]);
+
   useEffect(() => {
     let active = true;
     void (async () => {
@@ -78,7 +86,8 @@ export default function AdminConsole() {
     if (!snapshot) return;
     if (has("users.read")) void loadPlayers().catch((e) => setError(e.message));
     if (has("audit.read")) void loadAudit().catch((e) => setError(e.message));
-  }, [snapshot, has, loadPlayers, loadAudit]);
+    if (has("wallet.tokens.adjust")) void loadTopupRequests().catch((e) => setError(e.message));
+  }, [snapshot, has, loadPlayers, loadAudit, loadTopupRequests]);
 
   async function run(task: () => Promise<void>, success?: string) {
     setBusy(true); setError(""); setNotice("");
@@ -88,6 +97,7 @@ export default function AdminConsole() {
       await loadSnapshot();
       if (has("users.read")) await loadPlayers();
       if (has("audit.read")) await loadAudit();
+      if (has("wallet.tokens.adjust")) await loadTopupRequests();
       if (selected && has("users.read")) {
         const { data } = await supabase.rpc("admin_list_players", { p_search: selected.username });
         const fresh = ((data ?? []) as Player[]).find((p) => p.id === selected.id);
@@ -149,6 +159,16 @@ export default function AdminConsole() {
     }, "Paiement manuel du gagnant enregistré et audité.");
   }
 
+  async function reviewTopup(request: TopupRequest, approve: boolean) {
+    await run(async () => {
+      const { error: rpcError } = await supabase.rpc("mboa_review_token_topup_request", {
+        p_request_id: request.id, p_approve: approve,
+        p_note: approve ? "Paiement vérifié par l’administration" : "Paiement non confirmé par l’administration",
+      });
+      if (rpcError) throw rpcError;
+    }, approve ? "Paiement vérifié : jetons crédités au joueur." : "Demande de recharge refusée.");
+  }
+
   async function saveSetting(setting: Setting, value: unknown) {
     await run(async () => {
       const { error: rpcError } = await supabase.rpc("admin_update_setting", { p_key: setting.key, p_value: value });
@@ -196,7 +216,7 @@ export default function AdminConsole() {
         </div>
 
         <nav className="mb-6 flex flex-wrap gap-2" aria-label="Navigation administration">
-          {[["overview","Vue d’ensemble"],["players","Joueurs & soldes"],["settings","Paramètres"],["audit","Journal"],["roles","Rôles"]].map(([key,label]) =>
+          {[["overview","Vue d’ensemble"],["players","Joueurs & soldes"],["topups","Recharges"],["settings","Paramètres"],["audit","Journal"],["roles","Rôles"]].map(([key,label]) =>
             <button key={key} onClick={() => setTab(key)} className={"rounded-xl px-4 py-3 text-sm font-black " + (tab===key ? "bg-[#d2f178] text-[#172219]" : "border border-white/10 bg-white/[.04] text-white/65")}>{label}</button>
           )}
         </nav>
@@ -214,6 +234,32 @@ export default function AdminConsole() {
               ["Jetons en circulation", snapshot.summary.tokens_in_circulation, "🪙"],
             ].map(([label,value,emoji]) => <article key={String(label)} className="rounded-2xl border border-white/10 bg-[#1b2a22] p-5"><span className="text-2xl">{emoji}</span><p className="mt-4 text-xs font-bold text-white/45">{label}</p><strong className="mt-1 block text-2xl font-black">{number.format(Number(value))}</strong></article>)}
             <article className="rounded-2xl border border-amber-300/20 bg-amber-300/[.06] p-5 sm:col-span-2 xl:col-span-5"><strong className="text-amber-200">Paiements réels désactivés</strong><p className="mt-1 text-sm leading-6 text-white/55">Les dépôts, retraits et encaissements restent verrouillés jusqu’à l’intégration d’un prestataire, la vérification des webhooks et la validation de sécurité/réglementaire.</p></article>
+          </section>
+        )}
+
+        {tab === "topups" && (
+          <section className="rounded-2xl border border-white/10 bg-[#1b2a22] p-5">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div><h2 className="text-xl font-black">Demandes de recharge en attente</h2><p className="mt-1 text-xs text-white/45">Vérifie le transfert dans ton application Orange Money ou MTN avant de confirmer.</p></div>
+              <button disabled={busy} onClick={() => void run(loadTopupRequests)} className="rounded-xl border border-white/15 px-3 py-2 text-xs font-bold">Actualiser</button>
+            </div>
+            {!has("wallet.tokens.adjust") ? <p className="mt-4 text-sm text-white/45">Ton rôle ne permet pas de valider les recharges.</p> : topupRequests.length === 0 ? <p className="mt-5 rounded-xl bg-black/15 p-5 text-sm text-white/45">Aucune demande en attente.</p> : (
+              <div className="mt-5 grid gap-3 lg:grid-cols-2">
+                {topupRequests.map((request) => <article key={request.id} className="rounded-xl border border-white/10 bg-black/15 p-4">
+                  <div className="flex items-start justify-between gap-3"><div><strong className="text-base">{request.username}</strong><p className="mt-1 text-[11px] text-white/40">{new Date(request.created_at).toLocaleString("fr-FR")}</p></div><span className="rounded-full bg-amber-300/10 px-3 py-1 text-[10px] font-black text-amber-200">En attente</span></div>
+                  <div className="mt-4 grid grid-cols-2 gap-3">
+                    <div className="rounded-lg bg-white/[.04] p-3"><p className="text-[10px] text-white/40">Montant annoncé</p><strong>{number.format(request.paid_amount_xaf)} FCFA</strong></div>
+                    <div className="rounded-lg bg-white/[.04] p-3"><p className="text-[10px] text-white/40">Jetons à créditer</p><strong className="text-[#d2f178]">{number.format(request.tokens_requested)}</strong></div>
+                  </div>
+                  <p className="mt-3 text-xs text-white/60">Opérateur : <b>{request.provider === "orange_money" ? "Orange Money" : "MTN MoMo"}</b></p>
+                  <p className="mt-1 break-all text-xs text-white/60">Référence : <b>{request.payment_reference}</b></p>
+                  <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                    <button disabled={busy} onClick={() => void reviewTopup(request,true)} className="rounded-xl bg-[#d2f178] px-3 py-3 text-xs font-black text-[#172219]">Paiement vérifié · créditer</button>
+                    <button disabled={busy} onClick={() => void reviewTopup(request,false)} className="rounded-xl border border-red-300/20 bg-red-300/[.06] px-3 py-3 text-xs font-black text-red-200">Refuser la demande</button>
+                  </div>
+                </article>)}
+              </div>
+            )}
           </section>
         )}
 
