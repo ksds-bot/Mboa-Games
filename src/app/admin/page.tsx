@@ -6,7 +6,7 @@ export const metadata = { title: "Administration · Mboa Games" };
 export const dynamic = "force-dynamic";
 
 export default async function AdminPage() {
-  const supabase = await createClient();
+  const supabase = await createClient("admin");
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/connexion?mode=login&next=%2Fadmin");
   const { error: permissionError } = await supabase.rpc("admin_console_snapshot");
