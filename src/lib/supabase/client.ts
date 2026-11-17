@@ -1,7 +1,8 @@
 import { createBrowserClient } from "@supabase/ssr";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 export type AuthScope = "player" | "admin";
-const clients = new Map<AuthScope, ReturnType<typeof createBrowserClient>>();
+const clients = new Map<AuthScope, SupabaseClient>();
 
 function resolveScope(scope?: AuthScope): AuthScope {
   if (scope) return scope;
