@@ -240,23 +240,24 @@ export default function AdminConsole() {
         {tab === "topups" && (
           <section className="rounded-2xl border border-white/10 bg-[#1b2a22] p-5">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <div><h2 className="text-xl font-black">Demandes de recharge en attente</h2><p className="mt-1 text-xs text-white/45">Vérifie le transfert dans ton application Orange Money ou MTN avant de confirmer.</p></div>
+              <div><h2 className="text-xl font-black">Recharges des joueurs</h2><p className="mt-1 text-xs text-white/45">Historique des demandes. Vérifie le transfert dans ton application Orange Money ou MTN avant de confirmer une demande en attente.</p></div>
               <button disabled={busy} onClick={() => void run(loadTopupRequests)} className="rounded-xl border border-white/15 px-3 py-2 text-xs font-bold">Actualiser</button>
             </div>
             {!has("wallet.tokens.adjust") ? <p className="mt-4 text-sm text-white/45">Ton rôle ne permet pas de valider les recharges.</p> : topupRequests.length === 0 ? <p className="mt-5 rounded-xl bg-black/15 p-5 text-sm text-white/45">Aucune demande en attente.</p> : (
               <div className="mt-5 grid gap-3 lg:grid-cols-2">
                 {topupRequests.map((request) => <article key={request.id} className="rounded-xl border border-white/10 bg-black/15 p-4">
-                  <div className="flex items-start justify-between gap-3"><div><strong className="text-base">{request.username}</strong><p className="mt-1 text-[11px] text-white/40">{new Date(request.created_at).toLocaleString("fr-FR")}</p></div><span className="rounded-full bg-amber-300/10 px-3 py-1 text-[10px] font-black text-amber-200">En attente</span></div>
+                  <div className="flex items-start justify-between gap-3"><div><strong className="text-base">{request.username}</strong><p className="mt-1 text-[11px] text-white/40">{new Date(request.created_at).toLocaleString("fr-FR")}</p></div><span className={"rounded-full px-3 py-1 text-[10px] font-black "+(request.status==="approved"?"bg-emerald-300/10 text-emerald-200":request.status==="rejected"?"bg-red-300/10 text-red-200":"bg-amber-300/10 text-amber-200")}>{request.status==="approved"?"Validée":request.status==="rejected"?"Refusée":"En attente"}</span></div>
                   <div className="mt-4 grid grid-cols-2 gap-3">
                     <div className="rounded-lg bg-white/[.04] p-3"><p className="text-[10px] text-white/40">Montant annoncé</p><strong>{number.format(request.paid_amount_xaf)} FCFA</strong></div>
                     <div className="rounded-lg bg-white/[.04] p-3"><p className="text-[10px] text-white/40">Jetons à créditer</p><strong className="text-[#d2f178]">{number.format(request.tokens_requested)}</strong></div>
                   </div>
                   <p className="mt-3 text-xs text-white/60">Opérateur : <b>{request.provider === "orange_money" ? "Orange Money" : "MTN MoMo"}</b></p>
                   <p className="mt-1 break-all text-xs text-white/60">Référence : <b>{request.payment_reference}</b></p>
-                  <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                  {request.admin_note && <p className="mt-3 text-xs text-white/45">Note : {request.admin_note}</p>}
+                  {request.status === "pending" && <div className="mt-4 grid gap-2 sm:grid-cols-2">
                     <button disabled={busy} onClick={() => void reviewTopup(request,true)} className="rounded-xl bg-[#d2f178] px-3 py-3 text-xs font-black text-[#172219]">Paiement vérifié · créditer</button>
                     <button disabled={busy} onClick={() => void reviewTopup(request,false)} className="rounded-xl border border-red-300/20 bg-red-300/[.06] px-3 py-3 text-xs font-black text-red-200">Refuser la demande</button>
-                  </div>
+                  </div>}
                 </article>)}
               </div>
             )}
