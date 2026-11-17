@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Session } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
@@ -15,19 +15,8 @@ export default function ConnexionForm({ initialMode = "register", redirectTo = "
   const [pin, setPin] = useState("");
   const [pinConfirmation, setPinConfirmation] = useState("");
   const [busy, setBusy] = useState(false);
-  const [authReady, setAuthReady] = useState(false);
+  const [authReady] = useState(true);
   const [error, setError] = useState("");
-
-  useEffect(() => {
-    let active = true;
-    void (async () => {
-      const { error: signOutError } = await createClient().auth.signOut({ scope: "local" });
-      if (!active) return;
-      if (signOutError) setError("Impossible de fermer la session précédente. Recharge cette page avant de continuer.");
-      else setAuthReady(true);
-    })();
-    return () => { active = false; };
-  }, []);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -49,7 +38,7 @@ export default function ConnexionForm({ initialMode = "register", redirectTo = "
     setBusy(true);
     setError("");
     try {
-      const supabase = createClient();
+      const supabase = createClient(redirectTo === "/admin" ? "admin" : "player");
       const { data, error: functionError } = await supabase.functions.invoke<{
         session: Session;
       }>("player-auth", {
@@ -165,7 +154,7 @@ export default function ConnexionForm({ initialMode = "register", redirectTo = "
 
       {error && <p className="auth-error" role="alert">{error}</p>}
 
-      <p className="auth-hint">Pour protéger les comptes, la session précédente sur cet appareil est fermée à l’ouverture de cette page. Saisis toujours le pseudo et le PIN du compte à utiliser.</p>
+      <p className="auth-hint">Les espaces joueur et administrateur conservent des sessions séparées. Tu peux les ouvrir dans deux onglets du même navigateur.</p>
       {redirectTo !== "/admin" && <button
         className="auth-mode-switch"
         type="button"
